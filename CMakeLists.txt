@@ -10,29 +10,22 @@ set(CLIENT_EXECUTABLE_NAME Client)
 add_subdirectory(Server)
 add_subdirectory(Client)
 
-include(FetchContent)
-
-FetchContent_Declare(
-  asio
-  GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
-  GIT_TAG asio-1-30-2
-)
-FetchContent_MakeAvailable(asio)
+find_package(asio REQUIRED)
 add_library(asioInterface INTERFACE)
 target_include_directories(asioInterface INTERFACE 
-  "${asio_SOURCE_DIR}/asio/include"
+  # "${asio_SOURCE_DIR}/asio/include"
+  ${ASIO_INCLUDE_DIR}
 )
 target_compile_definitions(asioInterface INTERFACE 
   ASIO_STANDALONE
   _WIN32_WINNT=0x0601
 )
 
-FetchContent_Declare(
-  json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.12.0
+find_package(nlohmann_json REQUIRED)
+add_library(jsonInterface INTERFACE)
+target_link_libraries(jsonInterface INTERFACE 
+  nlohmann_json::nlohmann_json
 )
-FetchContent_MakeAvailable(json)
 
 find_package(OpenSSL REQUIRED)
 add_library(OpenSSLInterface INTERFACE)
@@ -48,6 +41,12 @@ target_link_libraries(llhttpInterface INTERFACE
   llhttp::llhttp_static
 )
 
+find_package(spdlog REQUIRED)
+add_library(spdlogInterface INTERFACE)
+target_link_libraries(spdlogInterface INTERFACE 
+  spdlog::spdlog
+)
+
 set_target_properties(Server PROPERTIES 
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/Server"
 )
@@ -55,3 +54,8 @@ set_target_properties(Client PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/Client"
 )
 
+enable_testing()
+option(BUILD_TESTING "Build the test suite" ON)
+if (BUILD_TESTING)
+  add_subdirectory(Tests)
+endif()

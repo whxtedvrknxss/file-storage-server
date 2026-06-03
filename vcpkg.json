@@ -1,6 +1,10 @@
 {
   "dependencies": [
+    "asio",
+    "catch2",
+    "llhttp",
+    "nlohmann-json",
     "openssl",
-    "llhttp"
+    "spdlog"
   ]
 }

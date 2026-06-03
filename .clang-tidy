@@ -1,0 +1,15 @@
+---
+# Enable modern, performance, and bugprone checks, disable specific noisy ones
+Checks: 'bugprone-*,
+         modernize-*,
+         performance-*,
+         readability-*,
+         -readability-braces-around-statements,
+         -modernize-use-trailing-return-type,
+         -readability-redundant-access-specifiers'
+
+CheckOptions:
+  - key:             readability-identifier-naming.VariableCase
+    value:           SnakeCase
+  - key:             readability-identifier-naming.ClassCase
+    value:           CamelCase
