@@ -10,12 +10,11 @@ set(CLIENT_EXECUTABLE_NAME Client)
 add_subdirectory(Server)
 add_subdirectory(Client)
 
-include(FetchContent)
-
 find_package(asio REQUIRED)
 add_library(asioInterface INTERFACE)
 target_include_directories(asioInterface INTERFACE 
-  "${asio_SOURCE_DIR}/asio/include"
+  # "${asio_SOURCE_DIR}/asio/include"
+  ${ASIO_INCLUDE_DIR}
 )
 target_compile_definitions(asioInterface INTERFACE 
   ASIO_STANDALONE
@@ -55,3 +54,8 @@ set_target_properties(Client PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/Client"
 )
 
+enable_testing()
+option(BUILD_TESTING "Build the test suite" ON)
+if (BUILD_TESTING)
+  add_subdirectory(Tests)
+endif()

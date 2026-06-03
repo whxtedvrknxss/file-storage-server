@@ -3,7 +3,7 @@
 #include <asio.hpp>
 #include <string>
 
-namespace http {
+namespace fileserver::http {
 
 enum class Version : std::uint8_t { Http1_0, Http1_1, Unsupported };
 
@@ -26,4 +26,4 @@ concept AsyncWriteStream = requires(T stream, asio::const_buffer buffer) {
   } -> std::same_as<asio::awaitable<std::size_t>>;
 };
 
-}  // namespace http
+}  // namespace fileserver::http

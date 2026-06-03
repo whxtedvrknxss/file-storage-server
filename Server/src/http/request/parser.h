@@ -4,9 +4,9 @@
 
 #include <span>
 
-#include "Builder.hpp"
+#include "builder.h"
 
-namespace http {
+namespace fileserver::http {
 
 enum class ParseStatus : std::uint8_t { Complete, Incomplete, Error };
 
@@ -28,9 +28,15 @@ struct ParseResult {
 
 class RequestParser {
  public:
-  RequestParser(RequestBuilder &builder) noexcept;
+  explicit RequestParser(RequestBuilder &builder) noexcept;
 
-  [[nodiscard]] ParseResult Parse(std::span<const char> data);
+  RequestParser() = delete;
+  RequestParser(RequestParser &&) = delete;
+  RequestParser(const RequestParser &) = delete;
+  RequestParser &operator=(RequestParser &&) = delete;
+  RequestParser &operator=(const RequestParser &) = delete;
+
+  [[nodiscard]] ParseResult Parse(std::span<const char> content);
 
   void Reset() noexcept;
 
@@ -57,4 +63,4 @@ class RequestParser {
   RequestBuilder *builder_;
 };
 
-}  // namespace http
+}  // namespace fileserver::http

@@ -2,9 +2,9 @@
 
 #include <vector>
 
-#include "Common.hpp"
+#include "common.h"
 
-namespace http {
+namespace fileserver::http {
 
 enum class StatusCode : uint16_t {
   Ok = 200,
@@ -32,6 +32,9 @@ class ResponseBuilder {
   ResponseBuilder() = default;
 
   void Build(StatusCode status);
+  [[nodiscard]] std::vector<char> GetResponseBytes() {
+    return std::move(response_bytes_);
+  }
 
   void Reset();
 
@@ -45,8 +48,8 @@ class ResponseBuilder {
   static std::string VersionToString(Version version);
 
  private:
-  Response response;
-  std::vector<char> response_bytes;
+  Response response_;
+  std::vector<char> response_bytes_;
 };
 
-}  // namespace http
+}  // namespace fileserver::http

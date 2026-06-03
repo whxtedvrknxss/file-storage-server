@@ -1,6 +1,8 @@
-#include "Session.hpp"
+#include "session.h"
 
 #include <print>
+
+namespace fileserver::connection {
 
 void Session::Start() { Read(); }
 
@@ -28,3 +30,5 @@ void Session::Write(std::size_t bytes_amount) {
 void Session::OnRead(std::size_t bytes_amount) {
   auto result = RequestParser.Parse({ReadBuffer.data(), bytes_amount});
 }
+
+}  // namespace fileserver::connection

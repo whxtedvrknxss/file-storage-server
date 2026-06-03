@@ -1,6 +1,6 @@
-#include "Builder.hpp"
+#include "builder.h"
 
-namespace http {
+namespace fileserver::http {
 
 void RequestBuilder::OnMethod(std::string_view method) {
   method_buffer_.append(method);
@@ -16,13 +16,12 @@ void RequestBuilder::OnVersion(uint8_t major, uint8_t minor) {
   }
 }
 
-void RequestBuilder::OnHeader(std::string_view name, std::string_view value) {
-  request_.headers.push_back(
-      Header{.name = std::string(name), .value = std::string(value)});
+void RequestBuilder::OnHeader(Header &&header) {
+  request_.headers.push_back(std::move(header));
 }
 
 void RequestBuilder::OnBody(std::span<const char> chunk) {
-  request_.body.append_range(chunk);
+  // request_.body.append_range(chunk);
 }
 
-}  // namespace http
+}  // namespace fileserver::http

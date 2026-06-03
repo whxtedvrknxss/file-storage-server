@@ -1,34 +1,35 @@
-#include "ResponseBuilder.hpp"
+#include "response_builder.h"
 
 #include <format>
 
-namespace http {
+namespace fileserver::http {
+
 void ResponseBuilder::Build(StatusCode status) {
-  response_bytes.append_range(std::format("{} {}\r\n",
-                                          VersionToString(response.version),
-                                          StatusToString(response.status)));
-  for (const auto &[name, value] : response.headers) {
-    response_bytes.append_range(std::format("{}: {}\r\n", name, value));
+  response_bytes_.append_range(std::format("{} {}\r\n",
+                                           VersionToString(response_.version),
+                                           StatusToString(response_.status)));
+  for (const auto &[name, value] : response_.headers) {
+    response_bytes_.append_range(std::format("{}: {}\r\n", name, value));
   }
 
   // TODO: change response body formatting(bodies can get very large)
-  response_bytes.append_range(std::format("\r\n{}\r\n\r\n", response.body));
+  response_bytes_.append_range(std::format("\r\n{}\r\n\r\n", response_.body));
 }
 
-void ResponseBuilder::Reset() { response = {}; }
+void ResponseBuilder::Reset() { response_ = {}; }
 
 ResponseBuilder &ResponseBuilder::AddStatusCode(StatusCode status) {
-  response.status = status;
+  response_.status = status;
   return *this;
 }
 
 ResponseBuilder &ResponseBuilder ::AddVersion(Version version) {
-  response.version = version;
+  response_.version = version;
   return *this;
 }
 
 ResponseBuilder &ResponseBuilder::AddHeader(Header header) {
-  response.headers.push_back(std::move(header));
+  response_.headers.push_back(std::move(header));
   return *this;
 }
 
@@ -82,4 +83,4 @@ std::string ResponseBuilder::VersionToString(Version version) {
   }
 }
 
-}  // namespace http
+}  // namespace fileserver::http

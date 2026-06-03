@@ -1,8 +1,8 @@
-#include "Parser.hpp"
+#include "parser.h"
 
 #include <llhttp.h>
 
-namespace http {
+namespace fileserver::http {
 
 RequestParser::RequestParser(RequestBuilder &builder) noexcept
     : builder_{&builder}, complete_{false} {
@@ -74,8 +74,7 @@ int RequestParser::OnHeaderName(llhttp_t *parser, const char *at,
   auto *self = static_cast<RequestParser *>(parser->data);
 
   if (self->parsing_header_value_) {
-    self->builder_->OnHeader(self->current_header_.name,
-                             self->current_header_.value);
+    self->builder_->OnHeader(std::move(self->current_header_));
     self->current_header_ = {};
   }
   self->current_header_.name.append(at, length);
@@ -96,12 +95,12 @@ int RequestParser::OnHeadersComplete(llhttp_t *parser) {
 
   if (!self->current_header_.name.empty() &&
       !self->current_header_.value.empty()) {
-    self->builder_->OnHeader(self->current_header_.name,
-                             self->current_header_.value);
+    self->builder_->OnHeader(std::move(self->current_header_));
     self->current_header_ = {};
   }
 
   self->builder_->OnVersion(parser->http_major, parser->http_minor);
+  // self->builder_->OnMethod(parser->method);
 
   return llhttp_errno_t::HPE_OK;
 }
@@ -118,4 +117,4 @@ int RequestParser::OnMessageComplete(llhttp_t *parser) {
   return llhttp_errno_t::HPE_OK;
 }
 
-}  // namespace http
+}  // namespace fileserver::http

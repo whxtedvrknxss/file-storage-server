@@ -3,11 +3,13 @@
 #include <asio.hpp>
 #include <memory>
 
-#include "HTTP/Request/Builder.hpp"
-#include "HTTP/Request/Parser.hpp"
-#include "HTTP/ResponseBuilder.hpp"
+#include "http/request/builder.h"
+#include "http/request/parser.h"
+#include "http/response_builder.h"
 
 class Router;
+
+namespace fileserver::connection {
 
 class Session : public std::enable_shared_from_this<Session> {
   using tcp = asio::ip::tcp;
@@ -39,3 +41,5 @@ class Session : public std::enable_shared_from_this<Session> {
   http::ResponseBuilder ResponseBuilder;
   Router *Router;
 };
+
+}  // namespace fileserver::connection

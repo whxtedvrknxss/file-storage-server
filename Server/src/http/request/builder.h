@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "HTTP/Common.hpp"
+#include "http/common.h"
 
-namespace http {
+namespace fileserver::http {
 
 enum class Method : std::uint8_t {
   Get,
@@ -20,7 +20,7 @@ enum class Method : std::uint8_t {
 struct Request {
   Version version;
   std::vector<Header> headers;
-  std::vector<char> body;
+  // std::vector<char> body;
 
   Method method;
   std::string uri;
@@ -28,29 +28,23 @@ struct Request {
 
 class RequestBuilder {
  public:
-  using BodySink = std::function<void(std::span<const char>)>;
-
   RequestBuilder() = default;
-
-  // TODO: finish file sinking 
-  // void SetBodySink(BodySink sink) { body_data_sink_ = sink; }
 
   void OnMethod(std::string_view method);
   void OnURI(std::string_view uri);
-  void OnHeader(std::string_view name, std::string_view value);
+  void OnHeader(Header &&header);
   void OnVersion(uint8_t major, uint8_t minor);
   void OnBody(std::span<const char> chunk);
 
   void OnComplete();
 
-  [[nodiscard]] Request Release();
+  [[nodiscard]] Request Release() { return request_; }
 
   void Reset();
 
  private:
   Request request_;
   std::string method_buffer_;
-  BodySink body_data_sink_;
 };
 
-}  // namespace http
+}  // namespace fileserver::http

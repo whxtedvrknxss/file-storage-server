@@ -8,9 +8,6 @@ Checks: 'bugprone-*,
          -modernize-use-trailing-return-type,
          -readability-redundant-access-specifiers'
 
-# Turn warnings into compilation errors if you want to be strict
-WarningsAsErrors: 'bugprone-*,performance-*'
-
 CheckOptions:
   - key:             readability-identifier-naming.VariableCase
     value:           SnakeCase
