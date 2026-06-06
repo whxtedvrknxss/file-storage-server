@@ -23,7 +23,7 @@ ResponseBuilder &ResponseBuilder::AddStatusCode(StatusCode status) {
   return *this;
 }
 
-ResponseBuilder &ResponseBuilder ::AddVersion(Version version) {
+ResponseBuilder &ResponseBuilder::AddVersion(Version version) {
   response_.version = version;
   return *this;
 }

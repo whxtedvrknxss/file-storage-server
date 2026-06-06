@@ -4,8 +4,8 @@ project(FileServer LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SERVER_EXECUTABLE_NAME Server)
-set(CLIENT_EXECUTABLE_NAME Client)
+set(SERVER_EXECUTABLE_NAME server)
+set(CLIENT_EXECUTABLE_NAME client)
 
 add_subdirectory(Server)
 add_subdirectory(Client)
@@ -13,7 +13,6 @@ add_subdirectory(Client)
 find_package(asio REQUIRED)
 add_library(asioInterface INTERFACE)
 target_include_directories(asioInterface INTERFACE 
-  # "${asio_SOURCE_DIR}/asio/include"
   ${ASIO_INCLUDE_DIR}
 )
 target_compile_definitions(asioInterface INTERFACE 
@@ -47,10 +46,9 @@ target_link_libraries(spdlogInterface INTERFACE
   spdlog::spdlog
 )
 
-set_target_properties(Server PROPERTIES 
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/Server"
-)
-set_target_properties(Client PROPERTIES 
+set_target_properties(${SERVER_EXECUTABLE_NAME} PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/Server")
+set_target_properties(${CLIENT_EXECUTABLE_NAME} PROPERTIES 
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/Client"
 )
 
@@ -58,4 +56,7 @@ enable_testing()
 option(BUILD_TESTING "Build the test suite" ON)
 if (BUILD_TESTING)
   add_subdirectory(Tests)
+  set_target_properties(unit_tests PROPERTIES 
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/unit_tests"
+  )
 endif()

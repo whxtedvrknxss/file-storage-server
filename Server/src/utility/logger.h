@@ -1,38 +1,73 @@
 #pragma once
 
+#include <spdlog/formatter.h>
 #include <spdlog/spdlog.h>
 
-namespace fileserver::logger {
+namespace fileserver::logging {
 
-void Init();
+enum class Severity : std::uint8_t {
+  Info = spdlog::level::info,
+  Warning = spdlog::level::warn,
+  Error = spdlog::level::err,
+  Fatal = spdlog::level::critical
+};
 
-template <typename... Args>
-void Info(fmt::format_string<Args...> format, Args &&...args) {
-  spdlog::info(format, std::forward<Args>(args)...);
-}
+class Logger {
+ public:
+  static void Initialize();
+};
 
-template <typename... Args>
-void Warn(fmt::format_string<Args...> format, Args &&...args) {
-  spdlog::warn(format, std::forward<Args>(args)...);
-}
+class LogMessage {
+ public:
+#ifdef _DEBUG
+  explicit LogMessage(Severity severity, const char* file, int line)
+      : severity_{severity} {
+    std::string_view file_view(file);
+    auto last_slash = file_view.find_last_of("\\/");
+    if (last_slash != std::string_view::npos) {
+      file_view.remove_prefix(last_slash + 1);
+    }
 
-template <typename... Args>
-void Error(fmt::format_string<Args...> format, Args &&...args) {
-  spdlog::error(format, std::forward<Args>(args)...);
-}
+    fmt::format_to(std::back_inserter(buffer_), "[{}:{}] ", file_view, line);
+  }
+#else
+  explicit LogMessage(Severity severity) : severity_{severity} {}
+#endif
+  ~LogMessage() noexcept;
 
-template <typename... Args>
-void Debug(fmt::format_string<Args...> format, Args &&...args) {
-  spdlog::debug(format, std::forward<Args>(args)...);
-}
+  template <typename T>
+  LogMessage& operator<<(const T& value) {
+    fmt::format_to(std::back_inserter(buffer_), "{}", value);
+    return *this;
+  }
 
-#define FSS_LOG_INFO(...) ::fileserver::logger::Info(__VA_ARGS__)
-#define FSS_LOG_ERROR(...) ::fileserver::logger::Error(__VA_ARGS__)
+  LogMessage& operator<<(std::string_view value) {
+    fmt::format_to(std::back_inserter(buffer_), "{}", value);
+    return *this;
+  }
+
+ private:
+  Severity severity_;
+  fmt::memory_buffer buffer_;
+};
 
 #ifdef _DEBUG
-#define FSS_LOG_DEBUG(...) ::fileserver::logger::Debug(__VA_ARGS__)
-#else
-#define FSS_LOG_DEBUG(...) ((void)0)
-#endif  // _DEBUG
+#define SERVER_LOG(severity)                                               \
+  fileserver::logging::LogMessage(fileserver::logging::Severity::severity, \
+                                  __FILE__, __LINE__)
 
-}  // namespace fileserver::logger
+#else
+#define SERVER_LOG(severity) \
+  fileserver::logging::LogMessage(fileserver::logging::Severity::severity)
+#endif
+
+// #define SERVER_LOG_INFO(...) ::fileserver::logger::(__VA_ARGS__)
+// #define SERVER_LOG_ERROR(...) ::fileserver::logger::Error(__VA_ARGS__)
+
+// #ifdef _DEBUG
+// #define SERVER_LOG_DEBUG(...) ::fileserver::logger::Debug(__VA_ARGS__)
+// #else
+// #define FSS_LOG_DEBUG(...) ((void)0)
+// #endif  // _DEBUG
+
+}  // namespace fileserver::logging

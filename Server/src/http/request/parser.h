@@ -44,7 +44,7 @@ class RequestParser {
   static ParseError TranslateError(llhttp_errno_t Err);
 
  private:
-  static int OnMethod(llhttp_t *, const char *, size_t);
+  // static int OnMethod(llhttp_t *, const char *, size_t);
   static int OnURI(llhttp_t *, const char *, size_t);
   static int OnHeaderName(llhttp_t *, const char *, size_t);
   static int OnHeaderValue(llhttp_t *, const char *, size_t);

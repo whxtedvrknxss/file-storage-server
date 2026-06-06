@@ -6,6 +6,7 @@ namespace fileserver::connection {
 
 class SessionManager {
  public:
+
   SessionManager() = default;
 
   void Start(std::shared_ptr<Session> session);
