@@ -2,18 +2,20 @@
 
 #include <llhttp.h>
 
+#include <print>
+
 namespace fileserver::http {
 
 RequestParser::RequestParser(RequestBuilder &builder) noexcept
-    : builder_{&builder}, complete_{false} {
+    : complete_{false}, parsing_header_value_{false}, builder_{&builder} {
   llhttp_settings_init(&settings_);
 
-  settings_.on_method = OnMethod;
+  // settings_.on_method = OnMethod;
   settings_.on_url = OnURI;
   settings_.on_header_field = OnHeaderName;
   settings_.on_header_value = OnHeaderValue;
   settings_.on_headers_complete = OnHeadersComplete;
-  settings_.on_body = OnBody;
+  // settings_.on_body = OnBody;
   settings_.on_message_complete = OnMessageComplete;
 
   llhttp_init(&parser_, llhttp_type_t::HTTP_REQUEST, &settings_);
@@ -55,12 +57,13 @@ ParseError RequestParser::TranslateError(llhttp_errno_t err) {
   }
 }
 
-int RequestParser::OnMethod(llhttp_t *parser, const char *at, size_t length) {
-  auto *self = static_cast<RequestParser *>(parser->data);
-  self->builder_->OnMethod(std::string_view(at, length));
-
-  return llhttp_errno_t::HPE_OK;
-}
+// int RequestParser::OnMethod(llhttp_t *parser, const char *at, size_t length)
+// {
+//   auto *self = static_cast<RequestParser *>(parser->data);
+//   self->builder_->OnMethod(std::string_view(at, length));
+//
+//   return llhttp_errno_t::HPE_OK;
+// }
 
 int RequestParser::OnURI(llhttp_t *parser, const char *at, size_t length) {
   auto *self = static_cast<RequestParser *>(parser->data);
@@ -100,19 +103,50 @@ int RequestParser::OnHeadersComplete(llhttp_t *parser) {
   }
 
   self->builder_->OnVersion(parser->http_major, parser->http_minor);
-  // self->builder_->OnMethod(parser->method);
+
+  Method method;
+  switch (parser->method) {
+    case llhttp_method_t::HTTP_GET: {
+      method = Method::Get;
+      break;
+    }
+    case llhttp_method_t::HTTP_HEAD: {
+      method = Method::Head;
+      break;
+    }
+    case llhttp_method_t::HTTP_POST: {
+      method = Method::Post;
+      break;
+    }
+    case llhttp_method_t::HTTP_PUT: {
+      method = Method::Put;
+      break;
+    }
+    case llhttp_method_t::HTTP_DELETE: {
+      method = Method::Delete;
+      break;
+    }
+    default: {
+      method = Method::Invalid;
+      break;
+    }
+  }
+
+  self->builder_->OnMethod(method);
 
   return llhttp_errno_t::HPE_OK;
 }
 
 int RequestParser::OnBody(llhttp_t *parser, const char *at, size_t length) {
   auto *self = static_cast<RequestParser *>(parser->data);
-  self->builder_->OnBody(std::string_view(at, length));
+  // self->builder_->OnBody(std::string_view(at, length));
   return llhttp_errno_t::HPE_OK;
 }
 
 int RequestParser::OnMessageComplete(llhttp_t *parser) {
   auto *self = static_cast<RequestParser *>(parser->data);
+
+  self->builder_->OnComplete();
 
   return llhttp_errno_t::HPE_OK;
 }
