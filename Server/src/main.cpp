@@ -1,4 +1,5 @@
 #include "core/server.h"
+#include "utility/logger.h"
 
 int main(int argc, char *argv[]) {
   fileserver::logging::Logger::Initialize();

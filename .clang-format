@@ -1,2 +1,5 @@
 ---
 BasedOnStyle: Google 
+SortIncludes: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty

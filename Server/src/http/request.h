@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "http/common.h"
+#include "common.h"
 
 namespace fileserver::http {
 
@@ -22,7 +22,7 @@ enum class Method : std::uint8_t {
 // Range
 // Content-Length
 // Transfer-Encoding
-// 
+//
 
 class Request {
  public:
@@ -36,7 +36,9 @@ class Request {
         headers_{std::move(headers)},
         uri_{std::move(uri)} {}
 
-  bool IsChunked() const { return bool{}; }
+ public:
+  void SetChunked(bool chunked) noexcept { is_chunked_ = chunked; }
+  bool IsChunked() const { return is_chunked_; }
 
  public:
   // NOLINTNEXTLINE(modernize-use-nodiscard)
@@ -50,12 +52,6 @@ class Request {
   [[nodiscard]] const std::string& GetUri() const { return uri_; }
   [[nodiscard]] const Headers& GetHeaders() const { return headers_; }
 
- public:
-  // void SetMethod(Method method) { method_ = method; }
-  // void SetVersion(Version version) { version_ = version; }
-  // void AddHeader(Header header) { headers_.push_back(std::move(header)); }
-  // void SetUri(std::string uri) { uri_ = std::move(uri); }
-
   friend class RequestBuilder;
 
  private:
@@ -63,6 +59,7 @@ class Request {
   Version version_;
   std::string uri_;
   Headers headers_;
+  bool is_chunked_;
 };
 
 }  // namespace fileserver::http

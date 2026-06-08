@@ -38,29 +38,4 @@ asio::awaitable<std::size_t> AsyncPipeStream(Source &source,
   co_return total_bytes;
 }
 
-asio::awaitable<void> tcp_echo_server(asio::ip::tcp::socket socket) {
-  constexpr static std::size_t kSize = 1024;
-  std::array<char, kSize> data;
-  while (true) {
-    std::size_t length = co_await socket.async_read_some(asio::buffer(data));
-    co_await asio::async_write(socket, asio::buffer(data, length));
-  }
-}
-
-// template <typename DataProcessor>
-// asio::awaitable<void> StreamFileChunks(asio::stream_file &file,
-//                                        DataProcessor &process_chunk) {
-//   std::vector<char> file_buffer(kBytesAmount);
-
-//   for (;;) {
-//     std::size_t bytes_read = co_await AsyncPipeStream(file, file_buffer);
-
-//     if (bytes_read == 0) {
-//       break;
-//     }
-
-//     co_await ProcessChunk(asio::buffer(file_buffer, bytes_read));
-//   }
-// }
-
 }  // namespace fileserver::storage

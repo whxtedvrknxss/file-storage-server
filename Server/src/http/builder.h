@@ -1,6 +1,6 @@
 #pragma once
 
-#include "http/common.h"
+#include "common.h"
 #include "request.h"
 
 namespace fileserver::http {
