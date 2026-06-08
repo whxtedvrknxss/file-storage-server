@@ -10,7 +10,6 @@ RequestParser::RequestParser(RequestBuilder &builder) noexcept
     : complete_{false}, parsing_header_value_{false}, builder_{&builder} {
   llhttp_settings_init(&settings_);
 
-  // settings_.on_method = OnMethod;
   settings_.on_url = OnURI;
   settings_.on_header_field = OnHeaderName;
   settings_.on_header_value = OnHeaderValue;

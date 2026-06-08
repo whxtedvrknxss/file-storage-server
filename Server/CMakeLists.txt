@@ -11,6 +11,14 @@ target_link_libraries(server_config INTERFACE
   jsonInterface
   spdlogInterface
 )
+target_compile_options(server_config INTERFACE 
+  $<$<CXX_COMPILER_ID:MSVC>:/EHs-c->
+  $<$<CXX_COMPILER_ID:Clang>:-fno-exceptions>
+  $<$<CXX_COMPILER_ID:GNU>:-fno-exceptions>
+) 
+target_compile_definitions(server_config INTERFACE 
+  $<$<CXX_COMPILER_ID:MSVC>:_HAS_EXCEPTIONS=0>
+)
 
 add_library(server_connection OBJECT)
 target_sources(server_connection 
@@ -29,10 +37,8 @@ add_library(server_core OBJECT)
 target_sources(server_core 
   PRIVATE 
     "src/core/server.cpp"
-    "src/core/router.cpp"
   PUBLIC
     "src/core/server.h"
-    "src/core/router.h"
 )
 target_link_libraries(server_core PRIVATE
   server_config
@@ -43,9 +49,10 @@ target_link_libraries(server_core PRIVATE
 add_library(server_filesystem OBJECT)
 target_sources(server_filesystem
   PRIVATE
-    "src/filesystem/file_handle.cpp"
+    "src/filesystem/filesystem.cpp"
   PUBLIC
-    "src/filesystem/file_handle.h"
+    "src/filesystem/filesystem.h"
+    "src/filesystem/sizes.h"
 )
 target_link_libraries(server_filesystem PRIVATE 
   server_config
@@ -54,13 +61,17 @@ target_link_libraries(server_filesystem PRIVATE
 add_library(server_http OBJECT)
 target_sources(server_http
   PRIVATE 
-    "src/http/request/builder.cpp"
-    "src/http/request/parser.cpp"
+    "src/http/builder.cpp"
+    "src/http/parser.cpp"
+    "src/http/request.cpp"
+    "src/http/router.cpp"
     "src/http/response_builder.cpp"
   PUBLIC
-    "src/http/request/builder.h"
-    "src/http/request/parser.h"
+    "src/http/builder.h"
     "src/http/common.h"
+    "src/http/parser.h"
+    "src/http/request.h"
+    "src/http/router.h"
     "src/http/response_builder.h"
 )
 target_link_libraries(server_http PRIVATE 

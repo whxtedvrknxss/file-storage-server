@@ -4,9 +4,13 @@
 #include <asio.hpp>
 
 #include "connection/session_manager.h"
-#include "router.h"
+#include "http/router.h"
+#include "filesystem/sizes.h"
 
 namespace fileserver::core {
+
+using namespace storage::units;
+constexpr std::size_t kMaxPayloadSize = 10_GiB;
 
 class Server {
   using tcp = asio::ip::tcp;
@@ -28,9 +32,9 @@ class Server {
 
   connection::SessionManager session_manager_;
 
-  Router router_;
-
   asio::thread_pool thread_pool_;
+
+  http::Router router_;
 };
 
 }  // namespace fileserver::core

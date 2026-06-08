@@ -2,8 +2,8 @@
 #include <catch2/generators/catch_generators_all.hpp>
 #include <print>
 
-#include "http/request/builder.h"
-#include "http/request/parser.h"
+#include "http/builder.h"
+#include "http/parser.h"
 
 namespace fileserver::testing {
 

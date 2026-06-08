@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include "builder.h"
+#include "request.h"
 
 namespace fileserver::http {
 
@@ -10,20 +10,23 @@ enum class AnalysisStatus : std::uint8_t {
   Valid,
   PayloadTooLarge,
   LengthRequired,
-  BadRequest
+  BadRequest,
+  MethodNotAllowed,
+  InvalidPath
 };
 
-struct AnalysisResult {
+struct RouteResult {
   AnalysisStatus status = AnalysisStatus::Valid;
   std::optional<std::string> error_message;
 };
 
-class RequestAnalyzer {
+class Router {
  public:
-  explicit RequestAnalyzer(std::size_t max_allowed_payload)
-      : max_payload_(max_allowed_payload) {}
+  explicit Router(std::size_t max_allowed_payload)
+      : max_payload_{max_allowed_payload} {}
 
-  [[nodiscard]] AnalysisResult AnalyzeHeaders(const Request& request) const;
+  [[nodiscard]] RouteResult AnalyzeHeaders(
+      const Request& request) const noexcept;
 
  private:
   std::size_t max_payload_;

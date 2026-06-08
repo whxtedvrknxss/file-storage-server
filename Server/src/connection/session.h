@@ -3,41 +3,25 @@
 #include <asio.hpp>
 #include <memory>
 
-#include "core/router.h"
-#include "http/request/builder.h"
-#include "http/request/parser.h"
+#include "http/router.h"
+#include "http/builder.h"
+#include "http/parser.h"
 #include "http/response_builder.h"
-#include "utility/logger.h"
-
-namespace fileserver::core {
-class SessionManager;
-}
 
 namespace fileserver::connection {
 
+class SessionManager;
+
 class Session : public std::enable_shared_from_this<Session> {
   using tcp = asio::ip::tcp;
-
-  using CloseHandler = std::function<void(std::shared_ptr<Session>)>;
 
   static constexpr std::size_t kMaxLength = 4096;
   using Buffer = std::array<char, kMaxLength>;
 
  public:
-  explicit Session(tcp::socket socket, core::Router &router,
-                   CloseHandler on_close);
-  // : socket_{std::move(socket)},
-  //   request_parser_{request_builder_},
-  //   router_{&router} {
-  //   std::error_code error_code;
-  //   auto endpoint = socket_.remote_endpoint(error_code);
-  //   if (!error_code) {
-  //     endpoint_address = endpoint.address().to_string();
-  //   }
-  //   SERVER_LOG(Info) << "New connection created: "
-  //                    << socket.remote_endpoint().address().to_string();
-  // }
-
+  explicit Session(tcp::socket socket,
+                   asio::strand<asio::any_io_executor> strand,
+                   http::Router *router, SessionManager *manager);
   ~Session();
 
   void Start();
@@ -45,23 +29,25 @@ class Session : public std::enable_shared_from_this<Session> {
 
  private:
   asio::awaitable<void> Read();
-  asio::awaitable<void> Write(std::size_t bytes_amount);
+  asio::awaitable<void> Write(std::size_t bytes_to_write);
 
-  void OnRead(std::size_t bytes_amount);
+  std::size_t ProcessIncomingData(std::size_t bytes_amount);
 
  private:
   tcp::socket socket_;
+  asio::strand<asio::any_io_executor> strand_;
+
   std::string endpoint_address;
+
   Buffer read_buffer_;
   Buffer write_buffer_;
 
   http::RequestBuilder request_builder_;
   http::RequestParser request_parser_;
-
   http::ResponseBuilder response_builder_;
-  core::Router *router_;
 
-  CloseHandler on_close_;
+  http::Router *router_;
+  SessionManager *manager_;
 };
 
 }  // namespace fileserver::connection
