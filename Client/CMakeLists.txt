@@ -1,13 +1,4 @@
-add_executable(${CLIENT_EXECUTABLE_NAME})
-
-target_sources(${CLIENT_EXECUTABLE_NAME} PRIVATE 
-  "src/main.cpp"
+add_custom_target(client ALL 
+  COMMAND go build -o "${CMAKE_BINARY_DIR}/Output/Client"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
-target_link_libraries(${CLIENT_EXECUTABLE_NAME} PRIVATE 
-  asioInterface
-  OpenSSLInterface
-  jsonInterface
-  spdlogInterface
-)
-

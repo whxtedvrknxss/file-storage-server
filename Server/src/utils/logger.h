@@ -3,11 +3,11 @@
 #include <spdlog/formatter.h>
 #include <spdlog/spdlog.h>
 
-namespace fileserver::logging {
+namespace fileserver::utils {
 
 enum class Severity : std::uint8_t {
   Info = spdlog::level::info,
-  Warning = spdlog::level::warn,
+  Warn = spdlog::level::warn,
   Error = spdlog::level::err,
   Fatal = spdlog::level::critical
 };
@@ -33,6 +33,11 @@ class LogMessage {
 #else
   explicit LogMessage(Severity severity) : severity_{severity} {}
 #endif
+  LogMessage(const LogMessage& other) = delete;
+  LogMessage(LogMessage&& other) = delete;
+  LogMessage& operator=(const LogMessage& other) = delete;
+  LogMessage& operator=(LogMessage&& other) = delete;
+
   ~LogMessage() noexcept;
 
   template <typename T>
@@ -52,22 +57,13 @@ class LogMessage {
 };
 
 #ifdef _DEBUG
-#define SERVER_LOG(severity)                                               \
-  fileserver::logging::LogMessage(fileserver::logging::Severity::severity, \
-                                  __FILE__, __LINE__)
+#define SERVER_LOG(severity)                                           \
+  fileserver::utils::LogMessage(fileserver::utils::Severity::severity, \
+                                __FILE__, __LINE__)
 
 #else
 #define SERVER_LOG(severity) \
-  fileserver::logging::LogMessage(fileserver::logging::Severity::severity)
+  fileserver::utils::LogMessage(fileserver::utils::Severity::severity)
 #endif
 
-// #define SERVER_LOG_INFO(...) ::fileserver::logger::(__VA_ARGS__)
-// #define SERVER_LOG_ERROR(...) ::fileserver::logger::Error(__VA_ARGS__)
-
-// #ifdef _DEBUG
-// #define SERVER_LOG_DEBUG(...) ::fileserver::logger::Debug(__VA_ARGS__)
-// #else
-// #define FSS_LOG_DEBUG(...) ((void)0)
-// #endif  // _DEBUG
-
-}  // namespace fileserver::logging
+}  // namespace fileserver::utils

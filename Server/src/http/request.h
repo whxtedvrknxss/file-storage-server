@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <expected>
 
 #include "common.h"
 
@@ -29,28 +30,44 @@ class Request {
   using Headers = std::vector<Header>;
 
   Request() = default;
-  Request(Method method, Version version, std::vector<Header> headers,
-          std::string uri)
+  Request(Method method, Version version, Headers headers, std::string uri)
       : method_{method},
         version_{version},
+        uri_{std::move(uri)},
         headers_{std::move(headers)},
-        uri_{std::move(uri)} {}
+        is_chunked_{false},
+        keep_connection_{false} {}
 
  public:
-  void SetChunked(bool chunked) noexcept { is_chunked_ = chunked; }
-  bool IsChunked() const { return is_chunked_; }
+  void SetChunked(bool chunked) noexcept {
+    is_chunked_ = chunked;
+  }
+
+  [[nodiscard]] bool IsChunked() const {
+    return is_chunked_;
+  }
+
+  [[nodiscard]] bool KeepConnection() const {
+    return keep_connection_;
+  }
 
  public:
-  // NOLINTNEXTLINE(modernize-use-nodiscard)
-  Method GetMethod() const { return method_; }
+  [[nodiscard]] Method GetMethod() const {
+    return method_;
+  }
 
-  // NOLINTNEXTLINE(modernize-use-nodiscard)
-  Version GetVersion() const { return version_; }
+  [[nodiscard]] Version GetVersion() const {
+    return version_;
+  }
 
   [[nodiscard]] const Header* GetHeader(std::string_view) const;
 
-  [[nodiscard]] const std::string& GetUri() const { return uri_; }
-  [[nodiscard]] const Headers& GetHeaders() const { return headers_; }
+  [[nodiscard]] const std::string& GetUri() const {
+    return uri_;
+  }
+  [[nodiscard]] const Headers& GetHeaders() const {
+    return headers_;
+  }
 
   friend class RequestBuilder;
 
@@ -60,6 +77,7 @@ class Request {
   std::string uri_;
   Headers headers_;
   bool is_chunked_;
+  bool keep_connection_;
 };
 
 }  // namespace fileserver::http

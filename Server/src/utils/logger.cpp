@@ -4,7 +4,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-namespace fileserver::logging {
+namespace fileserver::utils {
 
 void Logger::Initialize() {
   constexpr std::size_t kQueueSize = 8192;
@@ -33,4 +33,4 @@ LogMessage::~LogMessage() noexcept {
   }
 }
 
-}  // namespace fileserver::logging
+}  // namespace fileserver::utils

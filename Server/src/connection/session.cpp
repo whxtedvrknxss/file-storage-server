@@ -1,24 +1,24 @@
 #include "session.h"
 
-#include <print>
-
 #include <asio.hpp>
 
 #include "session_manager.h"
-#include "utility/logger.h"
+#include "utils/logger.h"
+#include "http/parser.h"
+#include "http/builder.h"
 
 namespace fileserver::connection {
 
-Session::Session(tcp::socket socket, asio::strand<asio::any_io_executor> strand,
-                 http::Router *router, SessionManager *manager)
+Session::Session(tcp::socket socket, http::Router *router,
+                 SessionManager *manager)
     : socket_{std::move(socket)},
-      strand_{std::move(strand)},
+      strand_{socket.get_executor()},
       router_{router},
       manager_{manager},
-      request_parser_{request_builder_} {
-  std::error_code error_code;
-  auto endpoint = socket_.remote_endpoint(error_code);
-  if (!error_code) {
+      id_{next_id_++} {
+  std::error_code err;
+  auto endpoint = socket_.remote_endpoint(err);
+  if (!err) {
     endpoint_address = endpoint.address().to_string();
   }
   SERVER_LOG(Info) << "New connection created: " << endpoint_address;
@@ -34,12 +34,23 @@ void Session::Start() {
 }
 
 void Session::Shutdown() noexcept {
-  std::error_code err_code;
-  err_code = socket_.shutdown(tcp::socket::shutdown_both, err_code);
-  err_code = socket_.close(err_code);
+  auto self = shared_from_this();
+  std::error_code err;
+
+  // NOLINTNEXTLINE(bugprone-unused-return-value)
+  socket_.shutdown(tcp::socket::shutdown_both, err);
+  if (err) [[unlikely]] {
+    SERVER_LOG(Warn) << "Error shutting down socket: " << err.message();
+  }
+
+  // NOLINTNEXTLINE(bugprone-unused-return-value)
+  socket_.close(err);
+  if (err) [[unlikely]] {
+    SERVER_LOG(Error) << "Close error: " << err.message();
+  }
 
   if (manager_ != nullptr) {
-    manager_->Stop(shared_from_this());
+    manager_->Unregister(self);
   }
 }
 
@@ -81,7 +92,9 @@ asio::awaitable<void> Session::Write(std::size_t bytes_to_write) {
 }
 
 std::size_t Session::ProcessIncomingData(std::size_t bytes_amount) {
-  auto result = request_parser_.Parse({read_buffer_.data(), bytes_amount});
+  http::RequestBuilder builder;
+  http::RequestParser parser{builder};
+  auto result = parser.Parse({read_buffer_.data(), bytes_amount});
   if (result.error == http::ParseError::None) {
     std::string response =
         "HTTP/1.1 200 OK\r\n"

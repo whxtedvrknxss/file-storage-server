@@ -1,27 +1,27 @@
 #include "server.h"
 
-#include "utility/logger.h"
+#include "utils/logger.h"
 
 namespace fileserver::core {
 
-Server::Server(std::uint16_t port)
-    : acceptor_(io_context_, tcp::endpoint(tcp::v4(), port)),
-      thread_pool_{std::thread::hardware_concurrency()},
-      // TODO: change it for a constant
-      router_{kMaxPayloadSize} {
-  SERVER_LOG(Info) << "Server started running on port: " << port;
+Server::Server(ServerConfig &config)
+    : acceptor_(io_context_, tcp::endpoint(tcp::v4(), config.port)),
+      num_threads_{std::max(1UZ, config.num_threads)},
+      thread_pool_{num_threads_},
+      router_{kMaxPayloadSize},
+      file_system_{config.root_dir},
+      session_manager_(io_context_.get_executor()) {
+  SERVER_LOG(Info) << "Server started.\n"
+                   << "Server host: " << config.host
+                   << "\nServer port: " << config.port
+                   << "\nServer root directory: " << config.root_dir
+                   << "\nServer thread count: " << config.num_threads;
 }
 
 void Server::Run() {
-  asio::co_spawn(io_context_, ListenForConnections(),
-                 [](const std::exception_ptr& eptr) {
-                   if (eptr) {
-                     std::rethrow_exception(eptr);
-                   }
-                 });
+  asio::co_spawn(io_context_, ListenForConnections(), asio::detached);
 
-  auto thread_amount{std::max(1U, std::thread::hardware_concurrency())};
-  for (size_t i{}; i < thread_amount; ++i) {
+  for (size_t i{}; i < num_threads_; ++i) {
     asio::post(thread_pool_, [this]() {
       io_context_.run();
     });
@@ -41,8 +41,8 @@ asio::awaitable<void> Server::ListenForConnections() {
                         << err.message();
 
       if (err == std::errc::too_many_files_open) {
-        asio::steady_timer timer(co_await asio::this_coro::executor,
-                                 std::chrono::milliseconds(100));
+        constexpr auto timeout = std::chrono::milliseconds(100);
+        asio::steady_timer timer(co_await asio::this_coro::executor, timeout);
         co_await timer.async_wait(asio::use_awaitable);
         continue;
       }
@@ -50,13 +50,11 @@ asio::awaitable<void> Server::ListenForConnections() {
       co_return;
     }
 
-    SERVER_LOG(Info) << "Handover to session strand completed smoothly.";
-
     auto new_session = std::make_shared<connection::Session>(
-        std::move(socket), std::move(session_strand), &router_,
-        &session_manager_);
+        std::move(socket), &router_, &session_manager_);
 
-    session_manager_.Start(new_session);
+    session_manager_.Register(new_session);
+    new_session->Start();
   }
 }
 

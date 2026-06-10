@@ -35,6 +35,7 @@ class RequestParser {
   RequestParser(const RequestParser &) = delete;
   RequestParser &operator=(RequestParser &&) = delete;
   RequestParser &operator=(const RequestParser &) = delete;
+  ~RequestParser() = default;
 
   [[nodiscard]] ParseResult Parse(std::span<const char> content);
 
@@ -53,8 +54,12 @@ class RequestParser {
   static int OnMessageComplete(llhttp_t *);
 
  private:
+  static void AppendRange(std::string &destination, std::string_view source);
+
+ private:
   bool complete_;
   bool parsing_header_value_;
+  bool headers_parsed_;
   Header current_header_;
 
   llhttp_t parser_;
