@@ -18,8 +18,8 @@ TEST_CASE("HTTP request parsing", "[http_request]") {
         http::Request{
             http::Method::Get,
             http::Version::Http1_1,
-            {http::Header{.name = "Host", .value = "localhost"},
-             http::Header{.name = "Connection", .value = "close"}},
+            {http::Header{.name = "host", .value = "localhost"},
+             http::Header{.name = "connection", .value = "close"}},
             "/",
         }},
        {{
@@ -32,9 +32,9 @@ TEST_CASE("HTTP request parsing", "[http_request]") {
         http::Request{
             http::Method::Get,
             http::Version::Http1_1,
-            {http::Header{.name = "Host", .value = "www.example.com"},
-             http::Header{.name = "User-Agent", .value = "Mozilla/5.0"},
-             http::Header{.name = "Accept", .value = "text/html"}},
+            {http::Header{.name = "host", .value = "www.example.com"},
+             http::Header{.name = "user-agent", .value = "mozilla/5.0"},
+             http::Header{.name = "accept", .value = "text/html"}},
             "/index.html"}},
 
        {{"POST /users HTTP/1.1\r\n"
@@ -47,10 +47,10 @@ TEST_CASE("HTTP request parsing", "[http_request]") {
         http::Request{
             http::Method::Post,
             http::Version::Http1_1,
-            {http::Header{.name = "Host", .value = "example.com"},
-             http::Header{.name = "Content-Type",
+            {http::Header{.name = "host", .value = "example.com"},
+             http::Header{.name = "content-type",
                           .value = "application/x-www-form-urlencoded"},
-             http::Header{.name = "Content-Length", .value = "49"}},
+             http::Header{.name = "content-length", .value = "49"}},
             "/users"}},
        {{"POST /submit HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
@@ -64,7 +64,7 @@ TEST_CASE("HTTP request parsing", "[http_request]") {
         http::Request{
             http::Method::Post,
             http::Version::Http1_1,
-            {http::Header{.name = "Transfer-Encoding", .value = "chunked"}},
+            {http::Header{.name = "transfer-encoding", .value = "chunked"}},
             "/submit"}},
        {{"POST /cgi-bin/process.cgi HTTP/1.1\r\n"
          "User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\n"
@@ -81,15 +81,15 @@ TEST_CASE("HTTP request parsing", "[http_request]") {
             http::Method::Post,
             http::Version::Http1_1,
             {http::Header{
-                 .name = "User-Agent",
-                 .value = "Mozilla/4.0 (compatible; MSIE5.01; Windows NT)"},
-             http::Header{.name = "Host", .value = "www.tutorialspoint.com"},
-             http::Header{.name = "Content-Type",
+                 .name = "user-agent",
+                 .value = "mozilla/4.0 (compatible; msie5.01; windows nt)"},
+             http::Header{.name = "host", .value = "www.tutorialspoint.com"},
+             http::Header{.name = "content-type",
                           .value = "text/xml; charset=utf-8"},
-             http::Header{.name = "Content-Length", .value = "20"},
-             http::Header{.name = "Accept-Language", .value = "en-us"},
-             http::Header{.name = "Accept-Encoding", .value = "gzip, deflate"},
-             http::Header{.name = "Connection", .value = "Keep-Alive"}},
+             http::Header{.name = "content-length", .value = "20"},
+             http::Header{.name = "accept-language", .value = "en-us"},
+             http::Header{.name = "accept-encoding", .value = "gzip, deflate"},
+             http::Header{.name = "connection", .value = "keep-alive"}},
             "/cgi-bin/process.cgi"}}}));
 
   http::RequestBuilder builder;

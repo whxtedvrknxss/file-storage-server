@@ -1,28 +1,36 @@
 #include "session_manager.h"
 
-#include "utility/logger.h"
-
 namespace fileserver::connection {
 
-void SessionManager::Start(std::shared_ptr<Session> session) {
-  std::scoped_lock<std::mutex> lock{mutex_};
-  sessions_.push_back(std::move(session));
-  sessions_.back()->Start();
+void SessionManager::Register(std::shared_ptr<Session> session) {
+  assert(session != nullptr);
+
+  asio::post(strand_, [this, session = std::move(session)]() mutable {
+    uint64_t id = session->GetId();
+    sessions_.insert({id, std::move(session)});
+  });
 }
 
-void SessionManager::Stop(const std::shared_ptr<Session> &session) {
-  std::scoped_lock<std::mutex> lock{mutex_};
-  auto it = std::ranges::find(sessions_, session);
-  if (it != sessions_.end()) {
-    sessions_.erase(it);
-  } else {
-    SERVER_LOG(Error) << "Connection is not found!";
-  }
+void SessionManager::Unregister(const std::shared_ptr<Session>& session) {
+  assert(session != nullptr);
+
+  asio::post(strand_, [this, session]() {
+    uint64_t id = session->GetId();
+    sessions_.erase(id);
+  });
 }
 
 void SessionManager::StopAll() {
-  std::scoped_lock<std::mutex> lock{mutex_};
-  sessions_.clear();
+  asio::post(strand_, [this]() {
+    auto local_sessions = std::move(sessions_);
+
+    sessions_.clear();
+
+    for (const auto& [id, session] : local_sessions) {
+      assert(session != nullptr);
+      session->Shutdown();
+    }
+  });
 }
 
 }  // namespace fileserver::connection

@@ -1,12 +1,10 @@
 #pragma once
 
-#include <asio.hpp>
 #include <memory>
 
+#include <asio.hpp>
+
 #include "http/router.h"
-#include "http/builder.h"
-#include "http/parser.h"
-#include "http/response_builder.h"
 
 namespace fileserver::connection {
 
@@ -19,10 +17,18 @@ class Session : public std::enable_shared_from_this<Session> {
   using Buffer = std::array<char, kMaxLength>;
 
  public:
-  explicit Session(tcp::socket socket,
-                   asio::strand<asio::any_io_executor> strand,
-                   http::Router *router, SessionManager *manager);
+  explicit Session(tcp::socket socket, http::Router *router,
+                   SessionManager *manager);
+  Session(const Session &other) = delete;
+  Session(Session &&other) = delete;
+  Session &operator=(const Session &other) = delete;
+  Session &operator=(Session &&other) = delete;
   ~Session();
+
+ public:
+  uint64_t GetId() const {
+    return id_;
+  }
 
   void Start();
   void Shutdown() noexcept;
@@ -39,15 +45,14 @@ class Session : public std::enable_shared_from_this<Session> {
 
   std::string endpoint_address;
 
-  Buffer read_buffer_;
-  Buffer write_buffer_;
-
-  http::RequestBuilder request_builder_;
-  http::RequestParser request_parser_;
-  http::ResponseBuilder response_builder_;
+  Buffer read_buffer_{};
+  Buffer write_buffer_{};
 
   http::Router *router_;
   SessionManager *manager_;
+
+  uint64_t id_;
+  inline static std::atomic<uint64_t> next_id_{0};
 };
 
 }  // namespace fileserver::connection

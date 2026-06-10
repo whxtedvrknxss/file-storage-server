@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string_view>
+#include <expected>
 
 #include <asio.hpp>
 
@@ -9,37 +10,42 @@ namespace fileserver::storage {
 
 using DirectoryChildren = std::vector<std::string>;
 
+template <typename T>
+using ExpectedStderr = std::expected<T, std::error_code>;
+
+using StreamFilePtr = std::unique_ptr<asio::stream_file>;
+
 class StorageInspector {
  public:
   virtual ~StorageInspector() = default;
 
-  virtual bool FileExists(std::string_view path) const noexcept = 0;
+  [[nodiscard]] virtual auto FileExists(std::string_view path) const noexcept
+      -> ExpectedStderr<bool> = 0;
 
-  virtual DirectoryChildren ListDirectory(
+  [[nodiscard]] virtual auto ListDirectory(std::string_view path) const noexcept
+      -> ExpectedStderr<DirectoryChildren> = 0;
+
+  [[nodiscard]] virtual std::error_code DeleteDirectory(
       std::string_view path) const noexcept = 0;
-
-  virtual void DeleteDir(std::string_view path) const noexcept = 0;
-  virtual void DeleteFile(std::string_view path) const noexcept = 0;
+  [[nodiscard]] virtual std::error_code DeleteFile(
+      std::string_view path) const noexcept = 0;
 };
 
 class StorageStreamer {
  public:
   virtual ~StorageStreamer() = default;
 
-  virtual auto OpenFileForReading(asio::any_io_executor executor,
-                                  std::string_view path,
-                                  std::error_code& err) const noexcept
-      -> std::unique_ptr<asio::stream_file> = 0;
+  [[nodiscard]] virtual auto OpenFileForReading(
+      asio::any_io_executor executor, std::string_view path) const noexcept
+      -> ExpectedStderr<StreamFilePtr> = 0;
 
-  virtual auto OpenFileForWriting(asio::any_io_executor executor,
-                                  std::string_view path,
-                                  std::error_code& err) const noexcept
-      -> std::unique_ptr<asio::stream_file> = 0;
+  [[nodiscard]] virtual auto OpenFileForWriting(
+      asio::any_io_executor executor, std::string_view path) const noexcept
+      -> ExpectedStderr<StreamFilePtr> = 0;
 
-  virtual auto OpenFileForAppending(asio::any_io_executor executor,
-                                    std::string_view path,
-                                    std::error_code& err) const noexcept
-      -> std::unique_ptr<asio::stream_file> = 0;
+  [[nodiscard]] virtual auto OpenFileForAppending(
+      asio::any_io_executor executor, std::string_view path) const noexcept
+      -> ExpectedStderr<StreamFilePtr> = 0;
 };
 
 class FileSystem : public StorageInspector, public StorageStreamer {
@@ -47,30 +53,32 @@ class FileSystem : public StorageInspector, public StorageStreamer {
   explicit FileSystem(std::string_view root);
 
  public:
-  [[nodiscard]] bool FileExists(std::string_view path) const noexcept override;
+  auto FileExists(std::string_view path) const noexcept
+      -> ExpectedStderr<bool> override;
 
-  [[nodiscard]] DirectoryChildren ListDirectory(
+  auto ListDirectory(std::string_view path) const noexcept
+      -> ExpectedStderr<DirectoryChildren> override;
+
+  std::error_code DeleteDirectory(
       std::string_view path) const noexcept override;
+  std::error_code DeleteFile(std::string_view path) const noexcept override;
 
  public:
-  [[nodiscard]] auto OpenFileForReading(asio::any_io_executor executor,
-                                        std::string_view path,
-                                        std::error_code& err) const noexcept
-      -> std::unique_ptr<asio::stream_file> override;
+  auto OpenFileForReading(asio::any_io_executor executor,
+                          std::string_view path) const noexcept
+      -> ExpectedStderr<StreamFilePtr> override;
 
-  [[nodiscard]] auto OpenFileForWriting(asio::any_io_executor executor,
-                                        std::string_view path,
-                                        std::error_code& err) const noexcept
-      -> std::unique_ptr<asio::stream_file> override;
+  auto OpenFileForWriting(asio::any_io_executor executor,
+                          std::string_view path) const noexcept
+      -> ExpectedStderr<StreamFilePtr> override;
 
-  [[nodiscard]] auto OpenFileForAppending(asio::any_io_executor executor,
-                                          std::string_view path,
-                                          std::error_code& err) const noexcept
-      -> std::unique_ptr<asio::stream_file> override;
+  auto OpenFileForAppending(asio::any_io_executor executor,
+                            std::string_view path) const noexcept
+      -> ExpectedStderr<StreamFilePtr> override;
 
  private:
-  const std::filesystem::path root_path_;
-  const std::filesystem::path storage_path_;
+  std::filesystem::path root_path_;
+  std::filesystem::path storage_path_;
 };
 
 }  // namespace fileserver::storage

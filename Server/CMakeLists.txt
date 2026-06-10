@@ -81,9 +81,9 @@ target_link_libraries(server_http PRIVATE
 add_library(server_utility OBJECT)
 target_sources(server_utility 
   PRIVATE
-    "src/utility/logger.cpp"
+    "src/utils/logger.cpp"
   PUBLIC
-    "src/utility/logger.h"
+    "src/utils/logger.h"
 )
 target_link_libraries(server_utility PRIVATE 
   server_config

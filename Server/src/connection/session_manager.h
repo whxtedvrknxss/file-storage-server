@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mutex>
+#include <unordered_map>
 
 #include "session.h"
 
@@ -8,16 +8,22 @@ namespace fileserver::connection {
 
 class SessionManager {
  public:
-  SessionManager() = default;
+  SessionManager(const asio::any_io_executor &executor) : strand_{executor} {}
 
-  void Start(std::shared_ptr<Session> session);
-  void Stop(const std::shared_ptr<Session> &session);
+  SessionManager(const SessionManager &other) = delete;
+  SessionManager(SessionManager &&other) = delete;
+  SessionManager &operator=(const SessionManager &other) = delete;
+  SessionManager &operator=(SessionManager &&other) = delete;
+  ~SessionManager() = default;
+
+  void Register(std::shared_ptr<Session> session);
+  void Unregister(const std::shared_ptr<Session> &session);
 
   void StopAll();
 
  private:
-  std::vector<std::shared_ptr<Session>> sessions_;
-  std::mutex mutex_;
+  std::unordered_map<uint64_t, std::shared_ptr<Session>> sessions_;
+  asio::strand<asio::any_io_executor> strand_;
 };
 
 }  // namespace fileserver::connection
