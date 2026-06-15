@@ -4,9 +4,9 @@
 
 #include "common.h"
 
-namespace fileserver::http {
+namespace fileserver::http1 {
 
-enum class StatusCode : uint16_t {
+enum class StatusCode : std::uint16_t {
   Ok = 200,
   Created = 201,
   BadRequest = 400,
@@ -27,21 +27,26 @@ struct Response {
   StatusCode status;
 };
 
-class ResponseBuilder {
+class ResponseFactory {
  public:
-  ResponseBuilder() = default;
+  ResponseFactory() = default;
 
   void Build(StatusCode status);
   [[nodiscard]] std::vector<char> GetResponseBytes() {
     return std::move(response_bytes_);
   }
 
+  [[nodiscard]] static std::vector<char> Get200OK() {
+    std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+    return {response.begin(), response.end()};
+  }
+
   void Reset();
 
  private:
-  ResponseBuilder &AddStatusCode(StatusCode status);
-  ResponseBuilder &AddVersion(Version version);
-  ResponseBuilder &AddHeader(Header Header);
+  ResponseFactory &AddStatusCode(StatusCode status);
+  ResponseFactory &AddVersion(Version version);
+  ResponseFactory &AddHeader(Header Header);
 
  private:
   static std::string StatusToString(StatusCode status);
@@ -52,4 +57,4 @@ class ResponseBuilder {
   std::vector<char> response_bytes_;
 };
 
-}  // namespace fileserver::http
+}  // namespace fileserver::http1

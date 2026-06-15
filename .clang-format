@@ -3,3 +3,4 @@ BasedOnStyle: Google
 SortIncludes: false
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortLambdasOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false

@@ -1,10 +1,10 @@
 #include <print>
 
 #include "core/server.h"
-#include "utility/logger.h"
+#include "utils/logger.h"
 
 int main(int argc, char *argv[]) {
-  fileserver::logging::Logger::Initialize();
+  fileserver::utils::Logger::Initialize();
 
   fileserver::core::ServerConfig config{.root_dir = argv[0]};
   for (int i = 1; i < argc; i++) {
@@ -40,8 +40,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  fileserver::core::Server server(std::move(config));
+  fileserver::core::Server server(config);
   server.Run();
+
+  fileserver::utils::Logger::Destroy();
 
   return EXIT_SUCCESS;
 }

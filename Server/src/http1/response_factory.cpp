@@ -1,10 +1,8 @@
-#include "response_builder.h"
+#include "response_factory.h"
 
-#include <format>
+namespace fileserver::http1 {
 
-namespace fileserver::http {
-
-void ResponseBuilder::Build(StatusCode status) {
+void ResponseFactory::Build(StatusCode status) {
   response_bytes_.append_range(std::format("{} {}\r\n",
                                            VersionToString(response_.version),
                                            StatusToString(response_.status)));
@@ -16,24 +14,26 @@ void ResponseBuilder::Build(StatusCode status) {
   response_bytes_.append_range(std::format("\r\n{}\r\n\r\n", response_.body));
 }
 
-void ResponseBuilder::Reset() { response_ = {}; }
+void ResponseFactory::Reset() {
+  response_ = {};
+}
 
-ResponseBuilder &ResponseBuilder::AddStatusCode(StatusCode status) {
+ResponseFactory &ResponseFactory::AddStatusCode(StatusCode status) {
   response_.status = status;
   return *this;
 }
 
-ResponseBuilder &ResponseBuilder::AddVersion(Version version) {
+ResponseFactory &ResponseFactory::AddVersion(Version version) {
   response_.version = version;
   return *this;
 }
 
-ResponseBuilder &ResponseBuilder::AddHeader(Header header) {
+ResponseFactory &ResponseFactory::AddHeader(Header header) {
   response_.headers.push_back(std::move(header));
   return *this;
 }
 
-std::string ResponseBuilder::StatusToString(StatusCode status) {
+std::string ResponseFactory::StatusToString(StatusCode status) {
   switch (status) {
     case StatusCode::Ok: {
       return "200 Ok";
@@ -71,7 +71,7 @@ std::string ResponseBuilder::StatusToString(StatusCode status) {
   }
 }
 
-std::string ResponseBuilder::VersionToString(Version version) {
+std::string ResponseFactory::VersionToString(Version version) {
   switch (version) {
     case Version::Http1_0: {
       return "HTTP/1.0";
@@ -83,4 +83,4 @@ std::string ResponseBuilder::VersionToString(Version version) {
   }
 }
 
-}  // namespace fileserver::http
+}  // namespace fileserver::http1

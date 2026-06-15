@@ -17,12 +17,12 @@ class SessionManager {
   ~SessionManager() = default;
 
   void Register(std::shared_ptr<Session> session);
-  void Unregister(const std::shared_ptr<Session> &session);
+  void Unregister(std::uint64_t id);
 
   void StopAll();
 
  private:
-  std::unordered_map<uint64_t, std::shared_ptr<Session>> sessions_;
+  std::unordered_map<std::uint64_t, std::shared_ptr<Session>> sessions_;
   asio::strand<asio::any_io_executor> strand_;
 };
 

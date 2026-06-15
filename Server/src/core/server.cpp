@@ -11,16 +11,17 @@ Server::Server(ServerConfig &config)
       router_{kMaxPayloadSize},
       file_system_{config.root_dir},
       session_manager_(io_context_.get_executor()) {
-  SERVER_LOG(Info) << "Server started.\n"
-                   << "Server host: " << config.host
-                   << "\nServer port: " << config.port
-                   << "\nServer root directory: " << config.root_dir
-                   << "\nServer thread count: " << config.num_threads;
+  SERVER_LOG(Info) << "Server started.";
+  SERVER_LOG(Info) << "Server host: " << config.host;
+  SERVER_LOG(Info) << "Server port: " << config.port;
+  SERVER_LOG(Info) << "Server root directory: " << config.root_dir;
+  SERVER_LOG(Info) << "Server thread count: " << config.num_threads;
 }
 
 void Server::Run() {
   asio::co_spawn(io_context_, ListenForConnections(), asio::detached);
 
+  auto guard = asio::make_work_guard(io_context_);
   for (size_t i{}; i < num_threads_; ++i) {
     asio::post(thread_pool_, [this]() {
       io_context_.run();
@@ -31,10 +32,10 @@ void Server::Run() {
 }
 
 asio::awaitable<void> Server::ListenForConnections() {
-  while (true) {
+  for (;;) {
     auto session_strand = asio::make_strand(co_await asio::this_coro::executor);
-    auto [err, socket] =
-        co_await acceptor_.async_accept(asio::as_tuple(asio::use_awaitable));
+    auto [err, socket] = co_await acceptor_.async_accept(
+        session_strand, asio::as_tuple(asio::use_awaitable));
 
     if (err) [[unlikely]] {
       SERVER_LOG(Error) << "Acceptor network fault encountered: "
@@ -53,8 +54,14 @@ asio::awaitable<void> Server::ListenForConnections() {
     auto new_session = std::make_shared<connection::Session>(
         std::move(socket), &router_, &session_manager_);
 
-    session_manager_.Register(new_session);
-    new_session->Start();
+    asio::co_spawn(
+        session_strand,
+        [this, new_session]() -> asio::awaitable<void> {
+          session_manager_.Register(new_session);
+          new_session->Start();
+          co_return;
+        },
+        asio::detached);
   }
 }
 

@@ -4,7 +4,9 @@
 
 #include <asio.hpp>
 
-#include "http/router.h"
+#include "http1/request_builder.h"
+#include "http1/parser.h"
+#include "http1/router.h"
 
 namespace fileserver::connection {
 
@@ -17,7 +19,7 @@ class Session : public std::enable_shared_from_this<Session> {
   using Buffer = std::array<char, kMaxLength>;
 
  public:
-  explicit Session(tcp::socket socket, http::Router *router,
+  explicit Session(tcp::socket socket, http1::Router *router,
                    SessionManager *manager);
   Session(const Session &other) = delete;
   Session(Session &&other) = delete;
@@ -36,6 +38,7 @@ class Session : public std::enable_shared_from_this<Session> {
  private:
   asio::awaitable<void> Read();
   asio::awaitable<void> Write(std::size_t bytes_to_write);
+  asio::awaitable<void> WriteChunked(std::size_t bytes_to_write);
 
   std::size_t ProcessIncomingData(std::size_t bytes_amount);
 
@@ -48,11 +51,13 @@ class Session : public std::enable_shared_from_this<Session> {
   Buffer read_buffer_{};
   Buffer write_buffer_{};
 
-  http::Router *router_;
+  http1::RequestBuilder req_builder_;
+  http1::RequestParser req_parser_;
+  http1::Router *router_;
   SessionManager *manager_;
 
   uint64_t id_;
-  inline static std::atomic<uint64_t> next_id_{0};
+  inline static std::atomic_ullong next_id_{0};
 };
 
 }  // namespace fileserver::connection

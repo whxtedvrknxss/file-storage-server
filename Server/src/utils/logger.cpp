@@ -23,6 +23,21 @@ void Logger::Initialize() {
   spdlog::set_default_logger(logger);
 }
 
+void Logger::Destroy() {
+  spdlog::shutdown();
+}
+
+LogMessage::LogMessage(Severity severity, const char* file, int line)
+    : severity_{severity} {
+  std::string_view file_view(file);
+  auto last_slash = file_view.find_last_of("\\/");
+  if (last_slash != std::string_view::npos) {
+    file_view.remove_prefix(last_slash + 1);
+  }
+
+  fmt::format_to(std::back_inserter(buffer_), "[{}:{}] ", file_view, line);
+}
+
 LogMessage::~LogMessage() noexcept {
   auto level = static_cast<spdlog::level::level_enum>(severity_);
   spdlog::log(level, fmt::to_string(buffer_));
