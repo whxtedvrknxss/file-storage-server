@@ -5,7 +5,7 @@ target_sources(unit_tests PRIVATE
   $<TARGET_OBJECTS:server_connection>
   $<TARGET_OBJECTS:server_core>
   $<TARGET_OBJECTS:server_filesystem>
-  $<TARGET_OBJECTS:server_http>
+  $<TARGET_OBJECTS:server_http1>
   $<TARGET_OBJECTS:server_utility>
   "request_parsing_test.cpp"
 )

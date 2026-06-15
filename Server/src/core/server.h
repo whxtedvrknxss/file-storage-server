@@ -5,7 +5,7 @@
 
 #include "connection/session_manager.h"
 #include "filesystem/filesystem.h"
-#include "http/router.h"
+#include "http1/router.h"
 #include "filesystem/sizes.h"
 
 namespace fileserver::core {
@@ -41,7 +41,7 @@ class Server {
   std::size_t num_threads_;
   asio::thread_pool thread_pool_;
 
-  http::Router router_;
+  http1::Router router_;
   storage::FileSystem file_system_;
 };
 

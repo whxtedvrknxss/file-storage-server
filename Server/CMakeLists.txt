@@ -7,7 +7,6 @@ target_include_directories(server_config INTERFACE
 target_link_libraries(server_config INTERFACE 
   llhttpInterface
   asioInterface
-  OpenSSLInterface
   jsonInterface
   spdlogInterface
 )
@@ -58,23 +57,25 @@ target_link_libraries(server_filesystem PRIVATE
   server_config
 )
 
-add_library(server_http OBJECT)
-target_sources(server_http
+add_library(server_http1 OBJECT)
+target_sources(server_http1
   PRIVATE 
-    "src/http/builder.cpp"
-    "src/http/parser.cpp"
-    "src/http/request.cpp"
-    "src/http/router.cpp"
-    "src/http/response_builder.cpp"
+    "src/http1/header_validator.cpp"
+    "src/http1/request_builder.cpp"
+    "src/http1/parser.cpp"
+    "src/http1/request.cpp"
+    "src/http1/router.cpp"
+    "src/http1/response_factory.cpp"
   PUBLIC
-    "src/http/builder.h"
-    "src/http/common.h"
-    "src/http/parser.h"
-    "src/http/request.h"
-    "src/http/router.h"
-    "src/http/response_builder.h"
+    "src/http1/common.h"
+    "src/http1/header_validator.h"
+    "src/http1/request_builder.h"
+    "src/http1/parser.h"
+    "src/http1/request.h"
+    "src/http1/router.h"
+    "src/http1/response_factory.h"
 )
-target_link_libraries(server_http PRIVATE 
+target_link_libraries(server_http1 PRIVATE 
   server_config
 )
 
@@ -93,7 +94,7 @@ target_sources(${SERVER_EXECUTABLE_NAME} PRIVATE
   $<TARGET_OBJECTS:server_connection>
   $<TARGET_OBJECTS:server_core>
   $<TARGET_OBJECTS:server_filesystem>
-  $<TARGET_OBJECTS:server_http>
+  $<TARGET_OBJECTS:server_http1>
   $<TARGET_OBJECTS:server_utility>
   "src/main.cpp"
 )

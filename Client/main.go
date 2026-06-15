@@ -9,63 +9,108 @@ import (
 )
 
 const (
-	// Point this to a valid test file path in your server's sandbox
 	serverURL  = "http://127.0.0.1:8080/files/test_download.txt"
-	numClients = 10000
+	numClients = 1000
+	logBuffer  = 1000
 )
 
-func runClient(id int, wg *sync.WaitGroup) {
+type LogMsg struct {
+	Time time.Time
+	Msg  string
+}
+
+func logger(logChan <-chan LogMsg, done chan<- struct{}) {
+	for entry := range logChan {
+		fmt.Printf("[%s] %s\n",
+			entry.Time.Format("15:04:05.000"),
+			entry.Msg,
+		)
+	}
+	done <- struct{}{}
+}
+
+func runClient(id int, wg *sync.WaitGroup, logChan chan<- LogMsg) {
 	defer wg.Done()
 
-	// Build the GET request
+	transport := &http.Transport{
+		DisableKeepAlives:  true, // IMPORTANT: forces new TCP connection per request
+		ForceAttemptHTTP2:  false,
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   0,
+	}
+
+	logChan <- LogMsg{
+		Time: time.Now(),
+		Msg:  fmt.Sprintf("[Client %02d] Sending request...", id),
+	}
+
+	startTime := time.Now()
+
 	req, err := http.NewRequest("GET", serverURL, nil)
 	if err != nil {
-		fmt.Printf("[Client %02d] Error creating request: %v\n", id, err)
+		logChan <- LogMsg{
+			Time: time.Now(),
+			Msg:  fmt.Sprintf("[Client %02d] Error creating request: %v", id, err),
+		}
 		return
 	}
 
-	// Custom client configuration with an execution timeout limit
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	fmt.Printf("[Client %02d] Sending concurrent GET request...\n", id)
-	startTime := time.Now()
-
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("[Client %02d] Catastrophic failure: %v\n", id, err)
+		logChan <- LogMsg{
+			Time: time.Now(),
+			Msg:  fmt.Sprintf("[Client %02d] Request failed: %v", id, err),
+		}
 		return
 	}
 	defer resp.Body.Close()
 
-	// Crucial for File Servers: Read the actual file bytes into the bit-bucket (io.Discard)
-	// This forces your C++ server to fully stream the file across the socket wire.
 	bytesRead, err := io.Copy(io.Discard, resp.Body)
 	if err != nil {
-		fmt.Printf("[Client %02d] Error reading stream payload: %v\n", id, err)
+		logChan <- LogMsg{
+			Time: time.Now(),
+			Msg:  fmt.Sprintf("[Client %02d] Error reading response: %v", id, err),
+		}
 		return
 	}
 
 	duration := time.Since(startTime)
-	fmt.Printf("[Client %02d] Received HTTP %d (%d bytes) in %v\n", id, resp.StatusCode, bytesRead,
-		duration)
+
+	logChan <- LogMsg{
+		Time: time.Now(),
+		Msg: fmt.Sprintf(
+			"[Client %02d] HTTP %d (%d bytes) in %v",
+			id, resp.StatusCode, bytesRead, duration,
+		),
+	}
 }
 
 func main() {
-	fmt.Printf("Starting asynchronous GET test with %d concurrent clients...\n", numClients)
-	globalStart := time.Now()
+	fmt.Printf("Starting NO-keepalive test with %d clients...\n", numClients)
 
 	var wg sync.WaitGroup
 
-	// Launch 20 concurrent clients asynchronously using goroutines
+	logChan := make(chan LogMsg, logBuffer)
+	done := make(chan struct{})
+
+	go logger(logChan, done)
+
+	globalStart := time.Now()
+
 	for i := 1; i <= numClients; i++ {
 		wg.Add(1)
-		go runClient(i, &wg)
+		go runClient(i, &wg, logChan)
+
+		time.Sleep(100 * time.Microsecond)
 	}
 
-	// Wait for all 20 loops to complete
 	wg.Wait()
 
-	fmt.Printf("\nAll concurrent downloads finished execution in %v!\n", time.Since(globalStart))
+	close(logChan)
+	<-done
+
+	fmt.Printf("\nAll downloads finished in %v!\n", time.Since(globalStart))
 }

@@ -4,7 +4,6 @@
     "catch2",
     "llhttp",
     "nlohmann-json",
-    "openssl",
     "spdlog"
   ]
 }

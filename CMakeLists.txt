@@ -26,14 +26,6 @@ target_link_libraries(jsonInterface INTERFACE
   nlohmann_json::nlohmann_json
 )
 
-find_package(OpenSSL REQUIRED)
-add_library(OpenSSLInterface INTERFACE)
-
-target_link_libraries(OpenSSLInterface INTERFACE
-  OpenSSL::SSL
-  OpenSSL::Crypto
-)
-
 find_package(llhttp REQUIRED)
 add_library(llhttpInterface INTERFACE)
 target_link_libraries(llhttpInterface INTERFACE

@@ -4,11 +4,15 @@
 
 #include <span>
 
-#include "builder.h"
+#include "request_builder.h"
 
-namespace fileserver::http {
+namespace fileserver::http1 {
 
-enum class ParseStatus : std::uint8_t { Complete, Incomplete, Error };
+enum class ParseStatus : std::uint8_t {
+  Complete,
+  Incomplete,
+  Error
+};
 
 enum class ParseError : std::uint8_t {
   None,
@@ -45,7 +49,6 @@ class RequestParser {
   static ParseError TranslateError(llhttp_errno_t Err);
 
  private:
-  // static int OnMethod(llhttp_t *, const char *, size_t);
   static int OnURI(llhttp_t *, const char *, size_t);
   static int OnHeaderName(llhttp_t *, const char *, size_t);
   static int OnHeaderValue(llhttp_t *, const char *, size_t);
@@ -68,4 +71,4 @@ class RequestParser {
   RequestBuilder *builder_;
 };
 
-}  // namespace fileserver::http
+}  // namespace fileserver::http1

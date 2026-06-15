@@ -15,21 +15,13 @@ enum class Severity : std::uint8_t {
 class Logger {
  public:
   static void Initialize();
+  static void Destroy();
 };
 
 class LogMessage {
  public:
 #ifdef _DEBUG
-  explicit LogMessage(Severity severity, const char* file, int line)
-      : severity_{severity} {
-    std::string_view file_view(file);
-    auto last_slash = file_view.find_last_of("\\/");
-    if (last_slash != std::string_view::npos) {
-      file_view.remove_prefix(last_slash + 1);
-    }
-
-    fmt::format_to(std::back_inserter(buffer_), "[{}:{}] ", file_view, line);
-  }
+  explicit LogMessage(Severity severity, const char* file, int line);
 #else
   explicit LogMessage(Severity severity) : severity_{severity} {}
 #endif
@@ -54,6 +46,7 @@ class LogMessage {
  private:
   Severity severity_;
   fmt::memory_buffer buffer_;
+  std::mutex mutex_;
 };
 
 #ifdef _DEBUG

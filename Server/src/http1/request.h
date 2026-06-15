@@ -1,12 +1,11 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include <expected>
 
 #include "common.h"
 
-namespace fileserver::http {
+namespace fileserver::http1 {
 
 enum class Method : std::uint8_t {
   Get,
@@ -14,6 +13,7 @@ enum class Method : std::uint8_t {
   Post,
   Put,
   Delete,
+  Patch,
   Invalid,
 };
 
@@ -27,14 +27,14 @@ enum class Method : std::uint8_t {
 
 class Request {
  public:
-  using Headers = std::vector<Header>;
+  using Headers = KnownHeaders;
 
   Request() = default;
   Request(Method method, Version version, Headers headers, std::string uri)
       : method_{method},
         version_{version},
         uri_{std::move(uri)},
-        headers_{std::move(headers)},
+        headers_{headers},
         is_chunked_{false},
         keep_connection_{false} {}
 
@@ -60,8 +60,6 @@ class Request {
     return version_;
   }
 
-  [[nodiscard]] const Header* GetHeader(std::string_view) const;
-
   [[nodiscard]] const std::string& GetUri() const {
     return uri_;
   }
@@ -80,4 +78,4 @@ class Request {
   bool keep_connection_;
 };
 
-}  // namespace fileserver::http
+}  // namespace fileserver::http1
