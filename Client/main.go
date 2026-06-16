@@ -33,8 +33,8 @@ func runClient(id int, wg *sync.WaitGroup, logChan chan<- LogMsg) {
 	defer wg.Done()
 
 	transport := &http.Transport{
-		DisableKeepAlives:  true, // IMPORTANT: forces new TCP connection per request
-		ForceAttemptHTTP2:  false,
+		DisableKeepAlives: true,
+		ForceAttemptHTTP2: false,
 	}
 
 	client := &http.Client{
