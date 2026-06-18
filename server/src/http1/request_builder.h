@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "request.h"
+#include "utils/defines.hpp"
 
 namespace fileserver::http1 {
 
@@ -26,7 +27,7 @@ class RequestBuilder {
   void Reset();
 
  private:
-  static bool TryParseStoull(const std::string& s, unsigned long long& out);
+  static utils::ExpectedErrc<std::uint64_t> ParseStoull(std::string_view str);
 
  private:
   Request request_;

@@ -6,7 +6,7 @@ FileSystem::FileSystem(std::string_view root)
     : root_path_{root}, storage_path_{root_path_ / "storage"} {}
 
 auto FileSystem::FileExists(std::string_view path) const noexcept
-    -> ExpectedErrc<bool> {
+    -> utils::ExpectedErrc<bool> {
   namespace fs = std::filesystem;
   std::error_code err;
   bool result = fs::exists(path, err);
@@ -19,7 +19,7 @@ auto FileSystem::FileExists(std::string_view path) const noexcept
 }
 
 auto FileSystem::ListDirectory(std::string_view path) const noexcept
-    -> ExpectedErrc<DirectoryChildren> {
+    -> utils::ExpectedErrc<DirectoryChildren> {
   namespace fs = std::filesystem;
   return {};
 }
@@ -35,13 +35,14 @@ std::error_code FileSystem::DeleteFile(std::string_view path) const noexcept {
 
 auto FileSystem::OpenFileForReading(asio::any_io_executor executor,
                                     std::string_view path) const noexcept
-    -> ExpectedErrc<StreamFilePtr> {
+    -> utils::ExpectedErrc<StreamFilePtr> {
   std::error_code err;
   auto file = std::make_unique<asio::stream_file>(executor);
   std::string path_str{path};
 
   const auto flags = asio::file_base::read_only;
-  if (file->open(path_str, flags, err)) {
+  file->open(path_str, flags, err);
+  if (err) {
     return std::unexpected(err);
   }
 
@@ -50,13 +51,14 @@ auto FileSystem::OpenFileForReading(asio::any_io_executor executor,
 
 auto FileSystem::OpenFileForWriting(asio::any_io_executor executor,
                                     std::string_view path) const noexcept
-    -> ExpectedErrc<StreamFilePtr> {
+    -> utils::ExpectedErrc<StreamFilePtr> {
   std::error_code err;
   auto file = std::make_unique<asio::stream_file>(executor);
   std::string path_str{path};
 
   const auto flags = asio::file_base::write_only | asio::file_base::create;
-  if (file->open(path_str, flags, err)) {
+  file->open(path_str, flags, err);
+  if (err) {
     return std::unexpected(err);
   }
 
@@ -65,14 +67,14 @@ auto FileSystem::OpenFileForWriting(asio::any_io_executor executor,
 
 auto FileSystem::OpenFileForAppending(asio::any_io_executor executor,
                                       std::string_view path) const noexcept
-    -> ExpectedErrc<StreamFilePtr> {
+    -> utils::ExpectedErrc<StreamFilePtr> {
   std::error_code err;
   auto file = std::make_unique<asio::stream_file>(executor);
-  std::string path_str{path};
 
   const auto flags = asio::file_base::write_only | asio::file_base::create |
                      asio::file_base::append;
-  if (file->open(path_str, flags, err)) {
+  file->open(path.data(), flags, err);
+  if (err) {
     return std::unexpected(err);
   }
 

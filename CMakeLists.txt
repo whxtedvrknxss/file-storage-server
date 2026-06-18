@@ -17,6 +17,7 @@ target_include_directories(asioInterface INTERFACE
 )
 target_compile_definitions(asioInterface INTERFACE 
   ASIO_STANDALONE
+  ASIO_NO_DEPRECATED
   _WIN32_WINNT=0x0601
 )
 

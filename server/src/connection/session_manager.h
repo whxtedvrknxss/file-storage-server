@@ -14,7 +14,6 @@ class SessionManager {
   SessionManager(SessionManager &&other) = delete;
   SessionManager &operator=(const SessionManager &other) = delete;
   SessionManager &operator=(SessionManager &&other) = delete;
-  ~SessionManager() = default;
 
   void Register(std::shared_ptr<Session> session);
   void Unregister(std::uint64_t id);

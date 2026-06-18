@@ -39,14 +39,12 @@ void Session::Shutdown() noexcept {
       [self = shared_from_this()] -> asio::awaitable<void> {
         std::error_code err;
 
-        // NOLINTNEXTLINE(bugprone-unused-return-value)
         self->socket_.shutdown(tcp::socket::shutdown_both, err);
         if (err) [[unlikely]] {
           SERVER_LOG(Warn) << "[id " << self->id_
                            << "] Error shutting down socket: " << err.message();
         }
 
-        // NOLINTNEXTLINE(bugprone-unused-return-value)
         self->socket_.close(err);
         if (err) [[unlikely]] {
           SERVER_LOG(Error) << "Close error: " << err.message();

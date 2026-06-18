@@ -3,9 +3,9 @@
 #include <cstddef>
 #include <functional>
 #include <expected>
-#include <system_error>
 
 #include "request.h"
+#include "utils/defines.hpp"
 
 namespace fileserver::connection {
 class Session;
@@ -16,6 +16,7 @@ namespace fileserver::http1 {
 // GET
 // - /storage/list/{directory}
 // - /storage/download/{filename}.{ext}
+// - /storage/tree/{directory}
 
 // HEAD
 // - /storage/download/{filename}.{ext}
@@ -29,9 +30,8 @@ namespace fileserver::http1 {
 // DELETE
 // - /storage/remove/{filename}.{ext}
 
-using RouteHandler =
-    std::function<asio::awaitable<std::expected<void, std::error_code>>(
-        std::shared_ptr<connection::Session>, std::string_view)>;
+using RouteHandler = std::function<asio::awaitable<utils::ExpectedErrc<void>>(
+    std::shared_ptr<connection::Session>, std::string_view)>;
 
 struct RouteResult {
   RouteHandler handler;
