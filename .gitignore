@@ -11,7 +11,7 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
-[Bb]uild/
+[Bb]uild*/
 .cache/
 vcpkg-configuration.json
 

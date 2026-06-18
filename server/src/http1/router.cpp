@@ -6,6 +6,8 @@ Router::Router(std::size_t max_allowed_payload)
     : max_payload_{max_allowed_payload} {}
 
 void Router::RegisterRoute(Method method, std::string_view prefix,
-                           RouteHandler handler) {}
+                           RouteHandler handler) {
+  routes_[method].push_back({prefix, std::move(handler)});
+}
 
 }  // namespace fileserver::http1

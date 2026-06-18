@@ -25,14 +25,17 @@ If **vcpkg** is not installed, there's a script in _scripts_ directory.
 
 Run the script:
 
-```sh
+```bash
 python .\scripts\vcpkg_install.py
 .\tools\vcpkg\vcpkg_bootstrap.bat
 ```
+
+
+
 Quick start/build everything:
-```sh
+```bash
 mkdir build ; cd build
-cmake -B . S .. -DCMAKE_TOOLCHAIN_FILE="..\tools\vcpkg\scripts\buildsystems\vcpkg.cmake" 
+cmake -B . -S .. -DCMAKE_TOOLCHAIN_FILE="..\tools\vcpkg\scripts\buildsystems\vcpkg.cmake" 
 cmake --build .
 ```
 

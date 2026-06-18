@@ -1,6 +1,7 @@
 #include "request_builder.h"
 
 #include <charconv>
+#include <system_error>
 
 namespace fileserver::http1 {
 
@@ -44,14 +45,17 @@ void RequestBuilder::OnHeader(Header header) {
   }
 
   if (name == "content-length") {
-    std::uint64_t content_length;
-    if (TryParseStoull(value, content_length)) {
-      headers.content_length = content_length;
+    auto result = ParseStoull(value);
+    if (result) {
+      headers.content_length = result.value();
     }
   }
 
   if (name == "x-upload-offset") {
-    headers.x_upload_offset = std::stoull(value);
+    auto result = ParseStoull(value);
+    if (result) {
+      headers.x_upload_offset = result.value();
+    }
   }
 }
 
@@ -63,12 +67,16 @@ void RequestBuilder::OnComplete() {}
 
 void RequestBuilder::Reset() {}
 
-bool RequestBuilder::TryParseStoull(const std::string& s,
-                                    unsigned long long& out) {
-  const auto* first = s.data();
-  const auto* last = s.data() + s.size();
+utils::ExpectedErrc<std::uint64_t> RequestBuilder::ParseStoull(
+    std::string_view str) {
+  std::uint64_t out;
+  const auto* first = str.data();
+  const auto* last = first + str.size();
   auto result = std::from_chars(first, last, out);
-  return result.ec == std::errc() && result.ptr == last;
+  if (result.ec != std::errc() || result.ptr != last) {
+    return std::unexpected(std::make_error_code(result.ec));
+  }
+  return out;
 }
 
 }  // namespace fileserver::http1
