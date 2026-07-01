@@ -9,7 +9,7 @@ namespace fileserver::testing {
 
 using namespace std::string_literals;
 
-TEST_CASE("Random HTTP/1.x requests successful parsing", "[http]") {
+TEST_CASE("Random HTTP/1.x requests successful parsing", "[http_request_parsing]") {
   auto [input, expected] = GENERATE(table<std::string, http1::Request>({
       {{"GET / HTTP/1.1\r\n"
         "Host: localhost\r\n"
@@ -18,18 +18,23 @@ TEST_CASE("Random HTTP/1.x requests successful parsing", "[http]") {
        http1::Request{
            http1::Method::Get,
            http1::Version::Http1_1,
-           http1::KnownHeaders{.connection = http1::ConnectionType::Close},
+           http1::KnownHeaders{
+               .connection = http1::ConnectionType::Close,
+           },
            "/",
-       }},
+       }                },
       {{
            "GET /index.html HTTP/1.1\r\n"
            "Host: www.example.com\r\n"
            "User-Agent: Mozilla/5.0\r\n"
            "Accept: text/html\r\n"
            "\r\n"s,
-       },
-       http1::Request{http1::Method::Get, http1::Version::Http1_1,
-                      http1::KnownHeaders{}, "/index.html"}},
+       },         http1::Request{
+           http1::Method::Get,
+           http1::Version::Http1_1,
+           http1::KnownHeaders{},
+           "/index.html",
+       }},
 
       {{"POST /users HTTP/1.1\r\n"
         "Host: example.com\r\n"
@@ -38,8 +43,14 @@ TEST_CASE("Random HTTP/1.x requests successful parsing", "[http]") {
         "\r\n"
         "name=FirstName+LastName&email=bsmth%40example.com\r\n"
         "\r\n"s},
-       http1::Request{http1::Method::Post, http1::Version::Http1_1,
-                      http1::KnownHeaders{.content_length = 49}, "/users"}},
+       http1::Request{
+           http1::Method::Post,
+           http1::Version::Http1_1,
+           http1::KnownHeaders{
+               .content_length = 49,
+           },
+           "/users",
+       }                },
       {{"POST /submit HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
         "\r\n"
@@ -49,10 +60,14 @@ TEST_CASE("Random HTTP/1.x requests successful parsing", "[http]") {
         " world\r\n"
         "0\r\n"
         "\r\n"s},
-       http1::Request{http1::Method::Post, http1::Version::Http1_1,
-                      http1::KnownHeaders{.transfer_encoding =
-                                              http1::TransferEncoding::Chunked},
-                      "/submit"}},
+       http1::Request{
+           http1::Method::Post,
+           http1::Version::Http1_1,
+           http1::KnownHeaders{
+               .transfer_encoding = http1::TransferEncoding::Chunked,
+           },
+           "/submit",
+       }                },
       {{"POST /cgi-bin/process.cgi HTTP/1.1\r\n"
         "User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\n"
         "Host: www.tutorialspoint.com\r\n"
@@ -64,18 +79,47 @@ TEST_CASE("Random HTTP/1.x requests successful parsing", "[http]") {
         "\r\n"
         "first=Zara&last=Ali\r\n"
         "\r\n"s},
-       http1::Request{http1::Method::Post, http1::Version::Http1_1,
-                      http1::KnownHeaders{
-                          .connection = http1::ConnectionType::KeepAlive,
-                          .content_length = 20,
-                      },
-                      "/cgi-bin/process.cgi"}},
+       http1::Request{
+           http1::Method::Post,
+           http1::Version::Http1_1,
+           http1::KnownHeaders{
+               .connection = http1::ConnectionType::KeepAlive,
+               .content_length = 20,
+           },
+           "/cgi-bin/process.cgi",
+       }                },
+      {{"POST /submit HTTP/1.1\r\n"
+        "Transfer-Enc"
+        "oding: chunk"
+        "ed\r\n"
+        "Connection: keep-"
+        "alive\r\n"
+        "\r\n"
+        "5\r\n"
+        "hello\r\n"
+        "6\r\n"
+        " world\r\n"
+        "0\r\n"
+        "\r\n"s},
+       http1::Request{
+           http1::Method::Post,
+           http1::Version::Http1_1,
+           http1::KnownHeaders{
+               .transfer_encoding = http1::TransferEncoding::Chunked,
+               .connection = http1::ConnectionType::KeepAlive,
+           },
+           "/submit",
+       }                }
   }));
 
   http1::RequestBuilder builder;
   http1::RequestParser parser(builder);
 
   auto result = parser.Parse(input);
+  if (result.status == http1::ParseStatus::Incomplete) {
+    result = parser.Parse(input);
+  }
+
   auto actual = builder.Release();
 
   REQUIRE(result.status == http1::ParseStatus::Complete);
@@ -87,26 +131,33 @@ TEST_CASE("Random HTTP/1.x requests successful parsing", "[http]") {
   REQUIRE(actual.GetUri() == expected.GetUri());
 }
 
-TEST_CASE("Invalid HTTP/1.x requests produce correct errors", "[http]") {
+TEST_CASE("Invalid HTTP/1.x requests produce correct errors", "[http_request_parsing]") {
   auto [input, expected] = GENERATE(table<std::string, http1::ParseError>({
-      {" INVALID / HTTP/1.1\r\n"
-       "Header: value\r\n"
-       "\r\n"s,
-       http1::ParseError::InvalidMethod},
-      {"HEAD / HTTP/1.1\r\n"
-       "Malformed Header:value-without-space\r\n"
-       "\r\n"s,
-       http1::ParseError::MalformedHeader},
-      {"GET /something HTTP/a.b\r\n"
-       "Content-Type: memes\r\n"
-       "\r\n"s,
+      {
+       {"INVALID / HTTP/1.1\r\n"
+           "Header: value\r\n"
+           "\r\n"s},
+       http1::ParseError::InvalidMethod,
+       },
+      {
+       {"HEAD / HTTP/1.1\r\n"
+           "Malformed Header:value-without-space\r\n"
+           "\r\n"s},
+       http1::ParseError::MalformedHeader,
+       },
+      {{"GET /something HTTP/a.b\r\n"
+        "Content-Type: memes\r\n"
+        "\r\n"s},
        http1::ParseError::InvalidVersion},
-      {"POST /uri< HTTP/1.1\r\n"
-       "Content-Type: test\r\n"
-       "\r\n"s,
-       http1::ParseError::None},  // to be done
-      {"GET \r\n"s,               //
-       http1::ParseError::UnexpectedEof},
+      {
+       {"POST /uri< HTTP/1.1\r\n"
+           "Content-Type: test\r\n"
+           "\r\n"s},
+       http1::ParseError::None,
+       }, // to be done
+      {
+       "GET \r\n"s, http1::ParseError::UnexpectedEof,
+       },
   }));
 
   http1::RequestBuilder builder;
@@ -115,6 +166,12 @@ TEST_CASE("Invalid HTTP/1.x requests produce correct errors", "[http]") {
   auto result = parser.Parse(input);
 
   REQUIRE(result.error == expected);
+}
+
+TEST_CASE("Chunked HTTP/1.x requests successful parsing", "[http_request_parsing]") {
+  //   auto [input, expected] = GENERATE(table<std::string, http1::ParseError>({
+
+  //   }));
 }
 
 }  // namespace fileserver::testing

@@ -4,19 +4,19 @@
 
 namespace fileserver::http1 {
 
-enum class HeaderValidationStatus : std::uint8_t {
+enum class RequestValidationStatus : std::uint8_t {
   Ok,
   PayloadTooLarge,
   ContentLengthRequired,
   BothTransferEncodingAndContentLengthProvided,
 };
 
-class HeaderValidator {
+class RequestValidator {
  public:
-  HeaderValidator(std::size_t max_payload) : max_payload_{max_payload} {}
+  RequestValidator(std::size_t max_payload) : max_payload_{max_payload} {
+  }
 
-  [[nodiscard]] HeaderValidationStatus Validate(
-      const Request& request) const noexcept;
+  [[nodiscard]] RequestValidationStatus Validate(const Request& request) const noexcept;
 
  private:
   std::size_t max_payload_;

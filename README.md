@@ -1,8 +1,9 @@
 # Multithreaded File Storage Server
 
 ![Static Badge](https://img.shields.io/badge/version-v0.0.0-blue)
-![Static Badge](https://img.shields.io/badge/build-passing-green)
-![Static Badge](https://img.shields.io/badge/tests-passing-green)
+![Static Badge](https://img.shields.io/badge/Windows-passing-green)
+![Static Badge](https://img.shields.io/badge/Linux-failing-red)
+![Static Badge](https://img.shields.io/badge/tests-failing-red)
 
 A high-performance, multithreaded file storage server written in C++ designed for efficient file uploads, downloads, and management over HTTP. 
 

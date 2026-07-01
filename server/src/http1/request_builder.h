@@ -27,7 +27,10 @@ class RequestBuilder {
   void Reset();
 
  private:
-  static utils::ExpectedErrc<std::uint64_t> ParseStoull(std::string_view str);
+  static TransferEncoding OnTransferEncoding(std::string_view value);
+  static ConnectionType OnConnectionType(std::string_view value);
+
+  static utils::ErrcOr<std::uint64_t> ParseStoull(std::string_view str);
 
  private:
   Request request_;

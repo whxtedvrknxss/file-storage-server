@@ -23,7 +23,8 @@ class LogMessage {
 #ifdef _DEBUG
   explicit LogMessage(Severity severity, const char* file, int line);
 #else
-  explicit LogMessage(Severity severity) : severity_{severity} {}
+  explicit LogMessage(Severity severity) : severity_{severity} {
+  }
 #endif
   LogMessage(const LogMessage& other) = delete;
   LogMessage(LogMessage&& other) = delete;
@@ -50,13 +51,14 @@ class LogMessage {
 };
 
 #ifdef _DEBUG
-#define SERVER_LOG(severity)                                           \
-  fileserver::utils::LogMessage(fileserver::utils::Severity::severity, \
-                                __FILE__, __LINE__)
+
+#define SERVER_LOG(severity) \
+  fileserver::utils::LogMessage(fileserver::utils::Severity::severity, __FILE__, __LINE__)
 
 #else
-#define SERVER_LOG(severity) \
-  fileserver::utils::LogMessage(fileserver::utils::Severity::severity)
+
+#define SERVER_LOG(severity) fileserver::utils::LogMessage(fileserver::utils::Severity::severity)
+
 #endif
 
 }  // namespace fileserver::utils

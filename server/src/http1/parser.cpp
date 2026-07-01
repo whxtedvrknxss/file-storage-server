@@ -8,11 +8,10 @@
 namespace fileserver::http1 {
 
 RequestParser::RequestParser(RequestBuilder &builder) noexcept
-    : complete_{false},
-      parsing_header_value_{false},
+    : parsing_header_value_{false},
       headers_parsed_{false},
-      parser_{},
-      settings_{nullptr},
+      parser_paused_{false},
+      offset_{0},
       builder_{&builder} {
   llhttp_settings_init(&settings_);
 
@@ -23,107 +22,137 @@ RequestParser::RequestParser(RequestBuilder &builder) noexcept
   settings_.on_body = OnBody;
   settings_.on_message_complete = OnMessageComplete;
 
-  llhttp_init(&parser_, llhttp_type_t::HTTP_REQUEST, &settings_);
+  llhttp_init(&parser_, HTTP_REQUEST, &settings_);
 
   parser_.data = this;
 }
 
 ParseResult RequestParser::Parse(std::span<const char> content) {
-  llhttp_errno_t err = llhttp_execute(&parser_, content.data(), content.size());
-  ParseResult result = {
-      .status = (err == llhttp_errno_t::HPE_OK ? ParseStatus::Complete
-                                               : ParseStatus::Error),
-      .error = TranslateError(err)};
-  return result;
+  if (parser_paused_) {
+    llhttp_resume(&parser_);
+    parser_paused_ = false;
+  }
+
+  const char *ptr = content.data() + offset_;
+  std::size_t size = content.size() - offset_;
+
+  llhttp_errno_t res = llhttp_execute(&parser_, ptr, size);
+  ParseError err = TranslateErr(res);
+
+  if (res == HPE_PAUSED) {
+    parser_paused_ = true;
+    offset_ = llhttp_get_error_pos(&parser_) - content.data();
+    return {ParseStatus::HeadersComplete, err};
+  }
+
+  if (res != HPE_OK) {
+    return {ParseStatus::Error, err};
+  }
+
+  if (!headers_parsed_) {
+    return {ParseStatus::NeedMoreData, err};
+  }
+
+  offset_ = 0;
+  return {ParseStatus::Complete, err};
 }
 
 void RequestParser::Reset() noexcept {
   llhttp_reset(&parser_);
+  parsing_header_value_ = false;
+  headers_parsed_ = false;
+  parser_paused_ = false;
+  offset_ = 0;
 }
 
-ParseError RequestParser::TranslateError(llhttp_errno_t err) {
+ParseError RequestParser::TranslateErr(llhttp_errno_t err) {
   switch (err) {
-    case llhttp_errno_t::HPE_OK: {
+    case HPE_PAUSED:
+      [[fallthrough]];
+    case HPE_OK:
       return ParseError::None;
-    }
-    case llhttp_errno_t::HPE_INVALID_METHOD: {
+
+    case HPE_INVALID_METHOD:
       return ParseError::InvalidMethod;
-    }
-    case llhttp_errno_t::HPE_INVALID_VERSION: {
+
+    case HPE_INVALID_VERSION:
       return ParseError::InvalidVersion;
-    }
-    case llhttp_errno_t::HPE_INVALID_HEADER_TOKEN: {
+
+    case HPE_INVALID_HEADER_TOKEN:
       return ParseError::MalformedHeader;
-    }
-    default: {
+
+    default:
       return ParseError::UnexpectedEof;
-    }
   }
 }
 
 int RequestParser::OnURI(llhttp_t *parser, const char *at, size_t length) {
   auto *self = static_cast<RequestParser *>(parser->data);
 
-  self->builder_->OnURI(std::string_view(at, length));
-  return llhttp_errno_t::HPE_OK;
+  self->builder_->OnURI(std::string_view{at, length});
+  return HPE_OK;
 }
 
-int RequestParser::OnHeaderName(llhttp_t *parser, const char *at,
-                                size_t length) {
+int RequestParser::OnHeaderName(llhttp_t *parser, const char *at, size_t length) {
   auto *self = static_cast<RequestParser *>(parser->data);
 
+  auto &current_header = self->current_header_;
   if (self->parsing_header_value_) {
-    self->builder_->OnHeader(self->current_header_);
-    self->current_header_ = {};
+    self->builder_->OnHeader(current_header);
+    current_header = {};
   }
 
-  AppendRange(self->current_header_.name, std::string_view{at, length});
-  return llhttp_errno_t::HPE_OK;
+  AppendStringLowercase(current_header.name, std::string_view{at, length});
+  return HPE_OK;
 }
 
-int RequestParser::OnHeaderValue(llhttp_t *parser, const char *at,
-                                 size_t length) {
+int RequestParser::OnHeaderValue(llhttp_t *parser, const char *at, size_t length) {
   auto *self = static_cast<RequestParser *>(parser->data);
 
   self->parsing_header_value_ = true;
-  AppendRange(self->current_header_.value, std::string_view{at, length});
-  return llhttp_errno_t::HPE_OK;
+  AppendStringLowercase(self->current_header_.value, std::string_view{at, length});
+  return HPE_OK;
 }
 
 int RequestParser::OnHeadersComplete(llhttp_t *parser) {
   auto *self = static_cast<RequestParser *>(parser->data);
 
-  if (!self->current_header_.name.empty() &&
-      !self->current_header_.value.empty()) {
-    self->builder_->OnHeader(std::move(self->current_header_));
-    self->current_header_ = {};
+  auto &current_header = self->current_header_;
+
+  bool name_empty = current_header.name.empty();
+  bool value_empty = current_header.value.empty();
+  if (name_empty && value_empty) {
+    self->builder_->OnHeader(std::move(current_header));
+    self->parsing_header_value_ = false;
+    current_header = {};
   }
 
-  self->builder_->OnVersion(parser->http_major, parser->http_minor);
+  auto &builder = self->builder_;
+
+  builder->OnVersion(parser->http_major, parser->http_minor);
 
   Method method;
   switch (parser->method) {
-    case llhttp_method_t::HTTP_GET: {
+    case HTTP_GET: {
       method = Method::Get;
       break;
     }
-    case llhttp_method_t::HTTP_HEAD: {
+    case HTTP_HEAD: {
       method = Method::Head;
       break;
     }
-    case llhttp_method_t::HTTP_POST: {
+    case HTTP_POST: {
       method = Method::Post;
       break;
     }
-    case llhttp_method_t::HTTP_PUT: {
+    case HTTP_PUT: {
       method = Method::Put;
       break;
     }
-    case llhttp_method_t::HTTP_DELETE: {
+    case HTTP_DELETE: {
       method = Method::Delete;
-      break;
     }
-    case llhttp_method_t::HTTP_PATCH: {
+    case HTTP_PATCH: {
       method = Method::Patch;
       break;
     }
@@ -131,17 +160,16 @@ int RequestParser::OnHeadersComplete(llhttp_t *parser) {
       method = Method::Invalid;
   }
 
-  self->builder_->OnMethod(method);
+  builder->OnMethod(method);
+  self->headers_parsed_ = true;
 
-  int result = method == Method::Invalid ? llhttp_errno_t::HPE_INVALID_METHOD
-                                         : llhttp_errno_t::HPE_OK;
-  return llhttp_errno_t::HPE_OK;
+  return HPE_PAUSED;
 }
 
 int RequestParser::OnBody(llhttp_t *parser, const char *at, size_t length) {
   auto *self = static_cast<RequestParser *>(parser->data);
-  self->builder_->OnBody(std::span(at, length));
-  return llhttp_errno_t::HPE_OK;
+  self->builder_->OnBody(std::span{at, length});
+  return HPE_OK;
 }
 
 int RequestParser::OnMessageComplete(llhttp_t *parser) {
@@ -149,16 +177,18 @@ int RequestParser::OnMessageComplete(llhttp_t *parser) {
 
   self->builder_->OnComplete();
 
-  return llhttp_errno_t::HPE_OK;
+  return HPE_OK;
 }
 
-void RequestParser::AppendRange(std::string &destination,
-                                std::string_view source) {
+void RequestParser::AppendStringLowercase(std::string &destination, std::string_view source) {
   auto new_size{destination.size() + source.size()};
   destination.reserve(new_size);
-  destination.append_range(source | std::views::transform([](const auto c) {
-                             return std::tolower(c);
-                           }));
+
+  auto view = source | std::views::transform([](const auto c) {
+                return std::tolower(c);
+              });
+
+  destination.append_range(view);
 }
 
 }  // namespace fileserver::http1
