@@ -1,18 +1,16 @@
 #include "session.h"
 
-#include <asio.hpp>
-
 #include "session_manager.h"
 #include "utils/logger.h"
 
 namespace fileserver::connection {
 
-Session::Session(tcp::socket socket, http1::Router *router,
-                 SessionManager *manager)
-    : socket_{std::move(socket)},
+Session::Session(tcp::socket socket, http1::Router *router, SessionManager *manager)
+    : manager_{manager},
+      socket_{std::move(socket)},
       strand_{asio::make_strand(socket.get_executor())},
+      req_validator_{0},  // TODO:
       router_{router},
-      manager_{manager},
       id_{next_id_++},
       req_parser_{req_builder_} {
   std::error_code err;
@@ -20,13 +18,12 @@ Session::Session(tcp::socket socket, http1::Router *router,
   if (!err) {
     endpoint_address = endpoint.address().to_string();
   }
-  SERVER_LOG(Info) << "[id " << id_
-                   << "] New connection created: " << endpoint_address;
+  SERVER_LOG(Info) << "[id " << id_ << "] New connection created: " << endpoint_address;
 }
 
 Session::~Session() {
-  SERVER_LOG(Info) << "[id " << id_ << "] Client disconnected gracefully: "
-                   << this->endpoint_address;
+  SERVER_LOG(Info) << "[id " << id_
+                   << "] Client disconnected gracefully: " << this->endpoint_address;
 }
 
 void Session::Start() {
@@ -34,37 +31,34 @@ void Session::Start() {
 }
 
 void Session::Shutdown() noexcept {
-  asio::co_spawn(
-      strand_,
-      [self = shared_from_this()] -> asio::awaitable<void> {
-        std::error_code err;
+  auto job = [self = shared_from_this()] -> asio::awaitable<void> {
+    std::error_code err;
 
-        self->socket_.shutdown(tcp::socket::shutdown_both, err);
-        if (err) [[unlikely]] {
-          SERVER_LOG(Warn) << "[id " << self->id_
-                           << "] Error shutting down socket: " << err.message();
-        }
+    self->socket_.shutdown(tcp::socket::shutdown_both, err);
+    if (err) [[unlikely]] {
+      SERVER_LOG(Warn) << "[id " << self->id_ << "] Error shutting down socket: " << err.message();
+    }
 
-        self->socket_.close(err);
-        if (err) [[unlikely]] {
-          SERVER_LOG(Error) << "Close error: " << err.message();
-        }
+    self->socket_.close(err);
+    if (err) [[unlikely]] {
+      SERVER_LOG(Error) << "Close error: " << err.message();
+    }
 
-        if (self->manager_ != nullptr) {
-          self->manager_->Unregister(self->id_);
-        }
+    if (self->manager_ != nullptr) {
+      self->manager_->Unregister(self->id_);
+    }
 
-        co_return;
-      },
-      asio::detached);
+    co_return;
+  };
+  asio::co_spawn(strand_, job(), asio::detached);
 }
 
 asio::awaitable<void> Session::Read() {
   auto self = shared_from_this();
   for (;;) {
     auto exec = asio::bind_executor(strand_, asio::use_awaitable);
-    auto [err, length] = co_await socket_.async_read_some(
-        asio::buffer(read_buffer_), asio::as_tuple(exec));
+    auto [err, length] =
+        co_await socket_.async_read_some(asio::buffer(read_buffer_), asio::as_tuple(exec));
 
     if (err) {
       if (err == asio::error::eof || err == asio::error::connection_reset) {
@@ -90,7 +84,8 @@ asio::awaitable<void> Session::Write(std::size_t bytes_to_write) {
   // TODO: allow chunked writing for big messages(finish the method)
   auto [err, bytes_written] = co_await socket_.async_write_some(
       asio::buffer(self->write_buffer_, bytes_to_write),
-      asio::as_tuple(asio::bind_executor(strand_, asio::use_awaitable)));
+      asio::as_tuple(asio::bind_executor(strand_, asio::use_awaitable))
+  );
 
   if (err) {
     SERVER_LOG(Error) << "Write failed: " << err.message();
@@ -105,18 +100,8 @@ asio::awaitable<void> Session::WriteChunked(std::size_t bytes_to_write) {
 }
 
 std::size_t Session::ProcessIncomingData(std::size_t bytes_amount) {
-  auto result = req_parser_.Parse({read_buffer_.data(), bytes_amount});
-
-  if (result.error == http1::ParseError::None) {
-    std::string response =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "Hello, world!\n";
-
-    std::ranges::copy(response, write_buffer_.begin());
-    return response.size();
-  }
+  std::span<const char> data{read_buffer_.data(), bytes_amount};
+  auto result = req_parser_.Parse(data);
 
   return 0;
 }

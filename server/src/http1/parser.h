@@ -1,17 +1,18 @@
 #pragma once
 
-#include <llhttp.h>
-
 #include <span>
+
+#include <llhttp.h>
 
 #include "request_builder.h"
 
 namespace fileserver::http1 {
 
 enum class ParseStatus : std::uint8_t {
+  NeedMoreData,
+  HeadersComplete,
   Complete,
-  Incomplete,
-  Error
+  Error,
 };
 
 enum class ParseError : std::uint8_t {
@@ -46,7 +47,7 @@ class RequestParser {
   void Reset() noexcept;
 
  private:
-  static ParseError TranslateError(llhttp_errno_t Err);
+  static ParseError TranslateErr(llhttp_errno_t err);
 
  private:
   static int OnURI(llhttp_t *, const char *, size_t);
@@ -57,12 +58,13 @@ class RequestParser {
   static int OnMessageComplete(llhttp_t *);
 
  private:
-  static void AppendRange(std::string &destination, std::string_view source);
+  static void AppendStringLowercase(std::string &destination, std::string_view source);
 
  private:
-  bool complete_;
   bool parsing_header_value_;
   bool headers_parsed_;
+  bool parser_paused_;
+  std::uintptr_t offset_;
   Header current_header_;
 
   llhttp_t parser_;

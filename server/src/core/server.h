@@ -1,7 +1,7 @@
 // HttpServer.h
 #pragma once
 
-#include <asio.hpp>
+#include <asio/thread_pool.hpp>
 
 #include "connection/session_manager.h"
 #include "filesystem/filesystem.h"
@@ -15,7 +15,6 @@ constexpr std::size_t kMaxPayloadSize = 10_GiB;
 
 struct ServerConfig {
   std::string host = "0.0.0.0";
-  // NOLINTNEXTLINE(readability-magic-numbers)
   std::uint16_t port = 8080;
   std::string root_dir;
   std::size_t num_threads = 4;

@@ -60,7 +60,7 @@ target_link_libraries(server_filesystem PRIVATE
 add_library(server_http1 OBJECT)
 target_sources(server_http1
   PRIVATE 
-    "src/http1/header_validator.cpp"
+    "src/http1/request_validator.cpp"
     "src/http1/request_builder.cpp"
     "src/http1/parser.cpp"
     "src/http1/request.cpp"
@@ -68,7 +68,7 @@ target_sources(server_http1
     "src/http1/response_factory.cpp"
   PUBLIC
     "src/http1/common.h"
-    "src/http1/header_validator.h"
+    "src/http1/request_validator.h"
     "src/http1/request_builder.h"
     "src/http1/parser.h"
     "src/http1/request.h"

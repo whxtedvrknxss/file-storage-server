@@ -4,6 +4,10 @@
     "catch2",
     "llhttp",
     "nlohmann-json",
-    "spdlog"
+    "spdlog",
+    {
+      "name": "liburing",
+      "platform": "linux"
+    }
   ]
 }

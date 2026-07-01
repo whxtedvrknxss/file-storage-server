@@ -1,35 +1,36 @@
-#include "header_validator.h"
+#include "request_validator.h"
 
 namespace fileserver::http1 {
 
-HeaderValidationStatus HeaderValidator::Validate(
+RequestValidationStatus RequestValidator::Validate(
     const Request& request) const noexcept {
+  using enum RequestValidationStatus;
+
   const auto method = request.GetMethod();
 
   if (method != Method::Post && method != Method::Put) {
-    return HeaderValidationStatus::Ok;
+    return Ok;
   }
 
   const auto content_length_opt = request.GetHeaders().content_length;
 
   if (content_length_opt) {
     if (content_length_opt > max_payload_) {
-      return HeaderValidationStatus::PayloadTooLarge;
+      return PayloadTooLarge;
     }
 
     if (request.IsChunked()) {
-      return HeaderValidationStatus::
-          BothTransferEncodingAndContentLengthProvided;
+      return BothTransferEncodingAndContentLengthProvided;
     }
 
-    return HeaderValidationStatus::Ok;
+    return Ok;
   }
 
   if (!request.IsChunked()) {
-    return HeaderValidationStatus::ContentLengthRequired;
+    return ContentLengthRequired;
   }
 
-  return HeaderValidationStatus::Ok;
+  return Ok;
 }
 
 }  // namespace fileserver::http1

@@ -30,7 +30,7 @@ namespace fileserver::http1 {
 // DELETE
 // - /storage/remove/{filename}.{ext}
 
-using RouteHandler = std::function<asio::awaitable<utils::ExpectedErrc<void>>(
+using RouteHandler = std::function<asio::awaitable<utils::ErrcOr<void>>(
     std::shared_ptr<connection::Session>, std::string_view)>;
 
 struct RouteResult {
